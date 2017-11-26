@@ -111,7 +111,11 @@ class Stimulus(Module):
         bias = np.random.normal(0, 10, out_chn).astype(np.int64)
         print("bias: ", bias)
         #bias = np.random.seed(42, 0, 10, out_chn).astype(np.int64)
-        ofmap = np.zeros((image_size[0], image_size[1],
+        # ofmap w/ padding
+        #ofmap = np.zeros((image_size[0], image_size[1].shape[1]+1,
+         #   out_chn)).astype(np.int64)
+        # ofmap w/o pading
+        ofmap = np.zeros((image_size[0]-filter_size[0]+1, image_size[1]-filter_size[1]+1,
             out_chn)).astype(np.int64)
 
         # Reference Output
@@ -121,4 +125,4 @@ class Stimulus(Module):
         print("winograd reference: ", reference_winograd)
 
         self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
-        self.deserializer.configure(ofmap, reference, image_size)
+        self.deserializer.configure(ofmap, reference, image_size, filter_size)
