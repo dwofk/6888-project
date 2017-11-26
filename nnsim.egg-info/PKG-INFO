@@ -1,0 +1,36 @@
+Metadata-Version: 1.1
+Name: nnsim
+Version: 0.1
+Summary: Neural network dataflow simulator
+Home-page: https://github.mit.edu/chiraag/nn-simulator
+Author: Chiraag Juvekar
+Author-email: chiraag@mit.edu
+License: MIT
+Description-Content-Type: UNKNOWN
+Description: =====
+        NNSim
+        =====
+        
+        A basic simulator for neural network architectures.
+        
+        Install and run
+        ===============
+        
+        To install an editable copy in you home directory run::
+        
+          >> pip install --user -e .
+        
+        Next you can run the included examples. For example::
+        
+          >> cd examples/simple
+          >> python conv_1d.py
+        
+        Other examples are in examples/.
+        
+        
+Keywords: neural-networks hardware
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)
