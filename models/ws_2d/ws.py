@@ -92,16 +92,17 @@ class WSArch(Module):
         
         in_sets = self.arr_y//self.chn_per_word
         out_sets = self.arr_x//self.chn_per_word
-        fmap_per_iteration = image_size[0]*image_size[1]
+        fmap_per_iteration_in = image_size[0]*image_size[1]
+        fmap_per_iteration_out = (input_size[0]-filter_size[0]+1)*(input_size[1]-filter_size[1]+1)
         num_iteration = filter_size[0]*filter_size[1]
 
         self.deserializer.configure(image_size)
-        self.ifmap_glb.configure(image_size, filter_size, in_sets, fmap_per_iteration)
-        self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration)
+        self.ifmap_glb.configure(image_size, filter_size, in_sets, fmap_per_iteration_in)
+        self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration_out)
         self.filter_noc.configure(in_sets, self.arr_x)
         self.ifmap_noc.configure(in_sets)
         self.psum_rd_noc.configure(out_sets)
-        self.psum_wr_noc.configure(num_iteration, fmap_per_iteration, out_sets)
+        self.psum_wr_noc.configure(num_iteration, fmap_per_iteration_out, out_sets)
         
         print("PE array size:", self.arr_y*self.arr_x)
 
