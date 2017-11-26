@@ -93,7 +93,7 @@ class WSArch(Module):
         in_sets = self.arr_y//self.chn_per_word
         out_sets = self.arr_x//self.chn_per_word
         fmap_per_iteration_in = image_size[0]*image_size[1]
-        fmap_per_iteration_out = (input_size[0]-filter_size[0]+1)*(input_size[1]-filter_size[1]+1)
+        fmap_per_iteration_out = (image_size[0]-filter_size[0]+1)*(image_size[1]-filter_size[1]+1)
         num_iteration = filter_size[0]*filter_size[1]
 
         self.deserializer.configure(image_size)
@@ -108,4 +108,4 @@ class WSArch(Module):
 
         for y in range(self.arr_y):
             for x in range(self.arr_x):
-                self.pe_array[y][x].configure(fmap_per_iteration, num_iteration)
+                self.pe_array[y][x].configure(fmap_per_iteration_out, num_iteration)
