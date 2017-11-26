@@ -6,13 +6,23 @@ from .serdes import InputSerializer, OutputDeserializer
 
 def conv(x, W, b):
     print(x.shape, W.shape, b.shape)
+    y = np.zeros([x.shape[0]-W.shape[0]+1, x.shape[1]-W.shape[1]+1, W.shape[3]]).astype(np.int64)
+    for out_channel in range(W.shape[3]):
+        for in_channel in range(W.shape[2]):
+            W_c = W[:, :, in_channel, out_channel]
+            x_c = x[:, :, in_channel]
+            y[:, :, out_channel] += correlate2d(x_c, W_c, mode="valid")
+        y[:, :, out_channel] += b[out_channel]
+    return y
+
+def conv_same_padding(x, W, b):
+    print(x.shape, W.shape, b.shape)
     y = np.zeros([x.shape[0], x.shape[1], W.shape[3]]).astype(np.int64)
     for out_channel in range(W.shape[3]):
         for in_channel in range(W.shape[2]):
             W_c = W[:, :, in_channel, out_channel]
             x_c = x[:, :, in_channel]
             y[:, :, out_channel] += correlate2d(x_c, W_c, mode="same")
-            #y[:, :, out_channel] += correlate2d(x_c, W_c, mode="valid")
         y[:, :, out_channel] += b[out_channel]
     return y
 
