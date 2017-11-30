@@ -87,7 +87,7 @@ class IFMapNoC(Module):
                 # print("ifmap_to_pe", ymin, ymax, data)
                 for y in range(ymin, ymax):
                     for x in range(self.arr_x):
-                        # print("writing ifmap to y, x, data: ", y, x, data[y-ymin])
+                        print("writing ifmap to y, x, data: ", y, x, data[y-ymin])
                         self.wr_chns[y][x].push(data[y-ymin])
 
                 self.curr_set += 1

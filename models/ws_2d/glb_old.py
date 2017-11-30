@@ -3,7 +3,7 @@ from nnsim.ram import SRAM, RD, WR
 from nnsim.channel import Channel
 
 class IFMapGLB(Module):
-    def instantiate(self, wr_chn, rd_chn, glb_depth, chn_per_word):
+    def instantiate(self, wr_chn, rd_chn, glb_depth, chn_per_word, hold_weights):
         self.wr_chn = wr_chn
         self.rd_chn = rd_chn
         self.chn_per_word = chn_per_word
@@ -15,6 +15,7 @@ class IFMapGLB(Module):
 
         self.sram = SRAM(glb_depth, chn_per_word)
         self.last_read = Channel(3)
+        self.hold_weights = hold_weights
 
         self.image_size = (0, 0)
         self.filter_size = (0, 0)
@@ -26,24 +27,26 @@ class IFMapGLB(Module):
         self.iteration = 0
         self.wr_done = False
 
-    def configure(self, image_size, filter_size, fmap_sets, fmap_per_iteration):
+    def configure(self, image_size, filter_size, fmap_sets, fmap_per_iteration_in, fmap_per_iteration_out):
         self.wr_done = False
 
         self.image_size = image_size
         self.filter_size = filter_size
         self.fmap_sets = fmap_sets
-        self.fmap_per_iteration = fmap_per_iteration
+        self.fmap_per_iteration_in = fmap_per_iteration_in
+        self.fmap_per_iteration_out = fmap_per_iteration_out
         
-        self.fmap_idx_ctr = 0
+        self.read_ctr = 0
 
     def tick(self):
         num_iteration = self.filter_size[0]*self.filter_size[1]
         offset_x = (self.filter_size[0] - 1)//2
         offset_y = (self.filter_size[1] - 1)//2
-        filter_x = self.iteration % self.filter_size[0] #- offset_x
-        filter_y = self.iteration // self.filter_size[0] #- offset_y
+        filter_x = self.iteration % self.filter_size[0] - offset_x
+        filter_y = self.iteration // self.filter_size[0] - offset_y
 
         if not self.wr_done:
+            print(self.wr_chn.valid())
             # Write to GLB
             if self.wr_chn.valid():
                 data = self.wr_chn.pop()
@@ -51,64 +54,53 @@ class IFMapGLB(Module):
                 # print "ifmap_glb wr"
                 # Write ifmap to glb
                 addr = self.fmap_sets*self.fmap_idx + self.curr_set
-                #print("ifmap_to_glb: fmap idx, curr set, addr ",  self.fmap_idx, self.curr_set, addr)
+                print("ifmap_to_glb: fmap idx, curr set, addr ",  self.fmap_idx, self.curr_set, addr)
                 self.curr_set += 1
                 self.sram.request(WR, addr, data)
                 if self.curr_set == self.fmap_sets:
                     self.curr_set = 0
                     self.fmap_idx += 1
-                if self.fmap_idx == 16: # self.fmap_per_iteration:
+                if self.fmap_idx == self.fmap_per_iteration_in:
                     # Done initializing ifmaps and psums
                     # self.sram.dump()
                     self.fmap_idx = 0
                     self.wr_done = True
         else:
             # Read from GLB and deal with SRAM latency
-            #if self.rd_chn.vacancy(1) and self.iteration < num_iteration:
-            #    fmap_x = self.fmap_idx % self.image_size[0]
-            #    fmap_y = self.fmap_idx  // self.image_size[0]
-            #    ifmap_x, ifmap_y = (fmap_x + filter_x, fmap_y + filter_y)
-            #    if (ifmap_x < 0) or (ifmap_x >= self.image_size[0]) or \
-            #            (ifmap_y < 0) or (ifmap_y >= self.image_size[1]):
-            #        # print("ifmap req zero: iter, fmap idx ", self.iteration, self.fmap_idx)
-            #        self.last_read.push(True)
-            #    else:
-            #        fmap_idx = (ifmap_y*self.image_size[0]) + ifmap_x
-            #        # addr = self.fmap_sets*fmap_idx + self.curr_set
-            #        #print("addr fmap idx, addr: ", fmap_idx, addr)
-            #        print("ifmap req glb: iter, fmap idx, addr ", self.iteration, self.fmap_idx, addr)
-            #        self.sram.request(RD, addr)
-            #        self.last_read.push(False)
-            #    self.curr_set += 1
-            #    if self.curr_set == self.fmap_sets:
-            #        self.curr_set = 0
-            #        self.fmap_idx += 1
-            #    if self.fmap_idx == self.fmap_per_iteration:
-            #        # print("fmap idx, fmap per iter: ", self.fmap_idx, self.fmap_per_iteration)
-            #        self.fmap_idx = 0
-            #        self.iteration += 1
-            
-            # TODO: fix this 
-            
-            fmap_indices = [0,1,4,5,1,2,5,6,2,3,6,7,4,5,8,9,5,6,9,10,6,7,10,11,8,9,12,13,9,10,13,14,10,11,14,15]
-                    
-            if self.rd_chn.vacancy(1) and self.iteration < num_iteration: # 9 iterations
-               
-                fmap_idx = fmap_indices[self.fmap_idx_ctr]
-                addr = fmap_idx
-                    
-                #print("addr fmap idx, addr: ", fmap_idx, addr)
-                print("ifmap req glb: fmap_idx_ctr, addr ", self.fmap_idx_ctr, addr)
-                self.sram.request(RD, addr)
-                self.last_read.push(False)
-                    
-                self.fmap_idx_ctr += 1
+            if self.rd_chn.vacancy(1) and self.iteration < num_iteration:
                 
-                if (self.fmap_idx_ctr % 4) == 0:
+                self.read_ctr += 1
+                print("ifmap glb read ctr ", self.read_ctr)
+                
+                fmap_x = self.fmap_idx % self.image_size[0]
+                fmap_y = self.fmap_idx  // self.image_size[0]
+                ifmap_x, ifmap_y = (fmap_x + filter_x, fmap_y + filter_y)
+                if (ifmap_x < 0) or (ifmap_x >= self.image_size[0]) or \
+                        (ifmap_y < 0) or (ifmap_y >= self.image_size[1]):
+                    # print("ifmap req zero: iter, fmap idx ", self.iteration, self.fmap_idx)
+                    self.last_read.push(True)
+                    #self.hold_weights.push(True)
+                    #print("padding happening... fmap_x, filter_x, ifmap_x, fmap_y, filter_y, ifmap_y ", fmap_x, filter_x, ifmap_x, fmap_y, filter_y, ifmap_y)
+                else:
+                    fmap_idx = (ifmap_y*self.image_size[0]) + ifmap_x
+                    addr = self.fmap_sets*fmap_idx + self.curr_set
+                    # print("addr fmap idx, addr: ", fmap_idx, addr)
+                    # print("ifmap req glb: iter, fmap idx, addr ", self.iteration, self.fmap_idx, addr)
+                    self.sram.request(RD, addr)
+                    self.last_read.push(False)
+                    #self.hold_weights.push(False)
+                self.curr_set += 1
+                if self.curr_set == self.fmap_sets:
+                    self.curr_set = 0
+                    self.fmap_idx += 1
+                if self.fmap_idx == self.fmap_per_iteration_out:
+                    # print("fmap idx, fmap per iter: ", self.fmap_idx, self.fmap_per_iteration)
+                    self.fmap_idx = 0
                     self.iteration += 1
                 
-            if self.last_read.valid():                
-                if self.last_read.pop():
+            if self.last_read.valid():
+                is_zero = self.last_read.pop()
+                if is_zero:
                     pass # do nothing
                 else: # push data to ifmap NOC
                     data = [e for e in self.sram.response()]
@@ -169,12 +161,11 @@ class PSumGLB(Module):
                 # Write ifmap to glb
                 addr = self.fmap_sets*self.fmap_wr_idx + self.wr_set
                 self.wr_set += 1
-                if self.fmap_wr_idx < 4:
-                    self.sram.request(WR, addr, data, port=0)
+                self.sram.request(WR, addr, data, port=0)
                 if self.wr_set == self.fmap_sets:
                     self.wr_set = 0
                     self.fmap_wr_idx += 1
-                if self.fmap_wr_idx == 16: #self.fmap_per_iteration:
+                if self.fmap_wr_idx == self.fmap_per_iteration:
                     # Done initializing ifmaps and psums
                     # self.sram.dump()
                     self.fmap_wr_idx = 0
@@ -204,14 +195,14 @@ class PSumGLB(Module):
                         [e for e in self.sram.response()]
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
-                print("psum rd glb: data", data)
+                #print("psum rd glb: data", data)
 
             if self.noc_wr_chn.valid():
                 #print("psum_to_glb: ", self.fmap_wr_idx, self.wr_set)
                 data = self.noc_wr_chn.pop()
                 self.raw_stats['wr'] += len(data)
                 addr = self.fmap_sets*self.fmap_wr_idx + self.wr_set
-                print("noc psum wr glb", self.fmap_wr_idx, self.wr_set, data)
+                #print("psum wr glb", self.fmap_wr_idx, self.wr_set, data)
                 self.wr_set += 1
                 self.sram.request(WR, addr, data, port=1)
                 if self.wr_set == self.fmap_sets:
@@ -223,18 +214,24 @@ class PSumGLB(Module):
                     self.fmap_wr_idx = 0
 
 class WeightsGLB(Module):
-    def instantiate(self, wr_chn, rd_chn):
+    def instantiate(self, wr_chn, rd_chn, hold_weights):
         self.wr_chn = wr_chn
         self.rd_chn = rd_chn
         self.name = 'weight_glb'
+        
+        self.hold_weights = hold_weights
         
         self.stat_type = 'show'
         self.raw_stats = {'size' : (0, 0), 'rd': 0, 'wr': 0}
         
     def tick(self):
-        if self.wr_chn.valid() and self.rd_chn.vacancy():
+        if self.wr_chn.valid() and self.rd_chn.vacancy() and self.hold_weights.valid():
+            #is_zero = self.hold_weights.pop()
             data = self.wr_chn.pop()
             self.raw_stats['wr'] += len(data)
+            #if is_zero:
+            #    pass # do nothing
+            #else:
             self.rd_chn.push(data)
             print("weight rd glb", data)
             self.raw_stats['rd'] += len(data)
