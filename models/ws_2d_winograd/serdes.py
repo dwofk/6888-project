@@ -114,17 +114,13 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
         self.curr_set = 0
 
     def tick(self):
-        in_sets = self.arr_y//self.chn_per_word
-        out_sets = self.arr_x//self.chn_per_word
+        in_sets = self.arr_y//self.chn_per_word # 1
+        out_sets = self.arr_x//self.chn_per_word # 2
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
-
-        if self.fmap_idx < fmap_per_iteration:
-            if self.curr_set < in_sets:
-                target_chn = self.ifmap_chn
-                target_str = 'ifmap'
-            else:
-                target_chn = self.psum_chn
-                target_str = 'psum'
+ 
+        if self.curr_set < in_sets:
+            target_chn = self.ifmap_chn
+            target_str = 'ifmap'
         else:
             target_chn = self.weights_chn
             target_str = 'weights'
@@ -136,10 +132,10 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
                 self.curr_set += 1
-                if self.fmap_idx < fmap_per_iteration:
-                    if self.curr_set == (in_sets+out_sets):
-                        self.curr_set = 0
-                        self.fmap_idx += 1
+                if self.curr_set == (in_sets+out_sets):
+                    self.curr_set = 0
+                    self.fmap_idx += 1            
+                        
 
 class OutputSerializer(Module):
     def instantiate(self, arch_output_chn, psum_chn):

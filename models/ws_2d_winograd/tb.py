@@ -11,6 +11,7 @@ class WSArchTB(Module):
         self.in_chn = 4
         self.out_chn = 8
         self.chn_per_word = 4
+        self.num_tiles = 4
 
         self.arr_x = self.out_chn
         self.arr_y = self.in_chn
@@ -18,7 +19,7 @@ class WSArchTB(Module):
         self.input_chn = Channel()
         self.output_chn = Channel()
 
-        ifmap_glb_depth = self.image_size[0]*self.image_size[1]* \
+        ifmap_glb_depth = self.image_size[0]*self.image_size[1]*self.num_tiles \
                 self.in_chn//self.chn_per_word
         psum_glb_depth = self.image_size[0]*self.image_size[1]* \
                 self.out_chn//self.chn_per_word

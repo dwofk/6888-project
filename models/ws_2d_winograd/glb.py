@@ -33,6 +33,8 @@ class IFMapGLB(Module):
         self.filter_size = filter_size
         self.fmap_sets = fmap_sets
         self.fmap_per_iteration = fmap_per_iteration
+        self.curr_tile = 0
+        self.num_tiles = 4
 
     def tick(self):
         num_iteration = self.filter_size[0]*self.filter_size[1]
@@ -49,7 +51,7 @@ class IFMapGLB(Module):
                 # print "ifmap_glb wr"
                 # Write ifmap to glb
                 # print "ifmap_to_glb: ", in_sets, self.fmap_idx, self.curr_set
-                addr = self.fmap_sets*self.fmap_idx + self.curr_set
+                addr = self.fmap_sets*self.fmap_idx + self.curr_set + self.curr_tile*self.fmap_per_iteration
                 self.curr_set += 1
                 self.sram.request(WR, addr, data)
                 if self.curr_set == self.fmap_sets:
@@ -59,6 +61,8 @@ class IFMapGLB(Module):
                     # Done initializing ifmaps and psums
                     # self.sram.dump()
                     self.fmap_idx = 0
+                    self.curr_tile += 1
+                if self.curr_tile == self.num_tiles:
                     self.wr_done = True
         else:
             # Read from GLB and deal with SRAM latency
