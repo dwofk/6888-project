@@ -19,10 +19,8 @@ class WSArchTB(Module):
         self.input_chn = Channel()
         self.output_chn = Channel()
 
-        ifmap_glb_depth = self.image_size[0]*self.image_size[1]*self.num_tiles \
-                self.in_chn//self.chn_per_word
-        psum_glb_depth = self.image_size[0]*self.image_size[1]* \
-                self.out_chn//self.chn_per_word
+        ifmap_glb_depth = self.image_size[0]*self.image_size[1]*self.num_tiles*self.in_chn//self.chn_per_word
+        psum_glb_depth = self.image_size[0]*self.image_size[1]*self.out_chn//self.chn_per_word
 
         self.stimulus = Stimulus(self.arr_x, self.arr_y, self.chn_per_word,
             self.input_chn, self.output_chn)

@@ -21,32 +21,40 @@ class PE(Module):
         self.psum_out_chn = psum_out_chn
 
         # PE controller state (set by configure)
-        self.fmap_per_iteration = 0
+        self.num_tiles = 0
         self.num_iteration = 0
 
-        self.fmap_idx = None
+        #self.fmap_idx = None
         self.iteration = None
 
     def configure(self, fmap_per_iteration, num_iteration):
-        self.fmap_per_iteration = fmap_per_iteration
+        self.curr_tile = 0
+        
+        #self.fmap_per_iteration = fmap_per_iteration
+        self.num_tiles = 4
         self.num_iteration = num_iteration
+        
+        #print("fmap per iteration:", fmap_per_iteration)
+        #print("num iteration:", num_iteration)
 
-        self.fmap_idx = 0
+        #self.fmap_idx = 0
         self.iteration = 0
 
     def tick(self):
-        if self.psum_in_chn.valid() and self.ifmap_chn.valid() and \
-                self.filter_chn.valid():
+        if self.psum_in_chn.valid() and self.ifmap_chn.valid() and self.filter_chn.valid():
             if self.psum_out_chn.vacancy():
                 in_psum = self.psum_in_chn.pop()
                 ifmap = self.ifmap_chn.pop()
                 weight = self.filter_chn.peek()
                 self.psum_out_chn.push(in_psum+ifmap*weight)
                 self.raw_stats['pe_mac'] += 1
-                #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, self.iteration, self.fmap_idx))
-
-                self.fmap_idx += 1
-                if self.fmap_idx == self.fmap_per_iteration:
-                    self.fmap_idx = 0
+                #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, \
+                #                                       self.iteration, self.fmap_idx))
+                print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))
+                self.curr_tile += 1
+                if self.curr_tile == self.num_tiles:
+                    self.curr_tile = 0
                     self.filter_chn.pop()
                     self.iteration += 1
+                if self.iteration == self.num_iteration:
+                    print("PE calculations for PE(%d, %d) should be done now!" % (self.loc_x, self.loc_y))

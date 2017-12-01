@@ -79,21 +79,21 @@ class WSArch(Module):
         # Setup NoC to deliver weights, ifmaps and psums
         self.filter_noc = WeightsNoC(self.weights_rd_chn, self.pe_filter_chns, self.chn_per_word)
         self.ifmap_noc = IFMapNoC(self.ifmap_rd_chn, self.pe_ifmap_chns, self.arr_x, self.chn_per_word)
-        self.psum_rd_noc = PSumRdNoC(self.psum_rd_chn, self.pe_psum_chns[0], self.chn_per_word)
-        self.psum_wr_noc = PSumWrNoC(self.pe_psum_chns[-1], self.psum_noc_wr_chn, self.psum_output_chn, self.chn_per_word)
+        self.psum_rd_noc = PSumRdNoC(self.pe_psum_chns[0], self.chn_per_word)
+        self.psum_wr_noc = PSumWrNoC(self.pe_psum_chns[-1], self.psum_output_chn, self.chn_per_word)
 
     def configure(self, image_size, filter_size, in_chn, out_chn):
         in_sets = self.arr_y//self.chn_per_word
         out_sets = self.arr_x//self.chn_per_word
         fmap_per_iteration = image_size[0]*image_size[1]
-        num_iteration = filter_size[0]*filter_size[1]
+        num_iteration = image_size[0]*image_size[1]
 
         self.deserializer.configure(image_size)
         self.ifmap_glb.configure(image_size, filter_size, in_sets, fmap_per_iteration)
         self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration)
         self.filter_noc.configure(in_sets, self.arr_x)
         self.ifmap_noc.configure(in_sets)
-        self.psum_rd_noc.configure(out_sets)
+        self.psum_rd_noc.configure(self.arr_x)
         self.psum_wr_noc.configure(num_iteration, fmap_per_iteration, out_sets)
 
         for y in range(self.arr_y):
