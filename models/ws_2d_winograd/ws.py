@@ -4,14 +4,14 @@ from nnsim.channel import Channel
 
 from .pe import PE
 from .serdes import InputDeserializer, OutputSerializer
-from .glb import IFMapGLB, WeightsGLB, PSumGLB
+from .glb import IFMapGLB, WeightsGLB
 from .noc import IFMapNoC, WeightsNoC, PSumRdNoC, PSumWrNoC
 
 class WSArch(Module):
     def instantiate(self, arr_x, arr_y,
             input_chn, output_chn,
             chn_per_word,
-            ifmap_glb_depth, psum_glb_depth):
+            ifmap_glb_depth):
         # PE static configuration (immutable)
         self.name = 'chip'
         self.arr_x = arr_x
@@ -42,8 +42,8 @@ class WSArch(Module):
 
         self.psum_rd_chn = Channel(3)
         self.psum_noc_wr_chn = Channel()
-        self.psum_glb = PSumGLB(self.psum_wr_chn, self.psum_noc_wr_chn, self.psum_rd_chn,
-                psum_glb_depth, chn_per_word)
+      #  self.psum_glb = PSumGLB(self.psum_wr_chn, self.psum_noc_wr_chn, self.psum_rd_chn,
+      #          psum_glb_depth, chn_per_word)
 
         self.weights_rd_chn = Channel()
         self.weights_glb = WeightsGLB(self.weights_wr_chn, self.weights_rd_chn)
@@ -90,7 +90,7 @@ class WSArch(Module):
 
         self.deserializer.configure(image_size)
         self.ifmap_glb.configure(image_size, filter_size, in_sets, fmap_per_iteration)
-        self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration)
+     #   self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration)
         self.filter_noc.configure(in_sets, self.arr_x)
         self.ifmap_noc.configure(in_sets)
         self.psum_rd_noc.configure(self.arr_x)

@@ -34,12 +34,14 @@ class InputSerializer(Module):
 
         self.image_size = image_size
         self.filter_size = image_size
+        self.num_tiles = 4
         
         self.send_ifmap = True
         self.fmap_idx = 0
         self.fmap_tile = 0
         self.weight_idx = 0
 
+        self.fmap_wr_done = False
         self.pass_done.wr(False)
 
     def tick(self):
@@ -54,14 +56,14 @@ class InputSerializer(Module):
 
         if self.arch_input_chn.vacancy() and not self.pass_done.rd():
 
-            if self.curr_set < in_sets: # send ifmap
+            if not self.fmap_wr_done: # send ifmap
                 # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]
                 y = self.fmap_idx // self.image_size[0]
                 cmin = self.curr_set*self.chn_per_word # 0
                 cmax = cmin + self.chn_per_word # 4
                 data = np.array([ self.ifmap[x, y, c, self.fmap_tile] for c in range(cmin, cmax) ])
-                self.fmap_idx += 1
+                self.fmap_tile += 1
                 print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
             else: # send weight
                 # send 4 elements of weights (twice in succession)
@@ -72,14 +74,13 @@ class InputSerializer(Module):
                 data = np.array([self.weights[x, y, c, self.curr_filter] for c in range(cmin, cmax) ])
                 self.curr_filter += 1
                 print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
-            self.curr_set += 1
             self.arch_input_chn.push(data)    
-            if self.curr_set == (in_sets+out_sets):
-                self.curr_set = 0
-                
+            if self.fmap_tile == self.num_tiles:
+                self.fmap_tile = 0
+                self.fmap_idx += 1
             if self.fmap_idx == fmap_per_iteration:
+                self.fmap_wr_done = True
                 self.fmap_idx = 0
-                self.fmap_tile += 1   
             if self.curr_filter == self.arr_x:
                 self.weight_idx += 1
                 self.curr_filter = 0
@@ -111,14 +112,17 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
         self.image_size = image_size
 
         self.fmap_idx = 0
+        self.fmap_tile = 0
+        self.num_tiles = 4
         self.curr_set = 0
+        self.fmap_wr_done = False
 
     def tick(self):
         in_sets = self.arr_y//self.chn_per_word # 1
         out_sets = self.arr_x//self.chn_per_word # 2
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
  
-        if self.curr_set < in_sets:
+        if not self.fmap_wr_done:
             target_chn = self.ifmap_chn
             target_str = 'ifmap'
         else:
@@ -131,10 +135,13 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
                 data = [e for e in self.arch_input_chn.pop()]
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
-                self.curr_set += 1
-                if self.curr_set == (in_sets+out_sets):
-                    self.curr_set = 0
-                    self.fmap_idx += 1            
+                self.fmap_tile += 1
+                if self.fmap_tile == self.num_tiles:
+                    self.fmap_tile = 0
+                    self.fmap_idx += 1
+                if self.fmap_idx == fmap_per_iteration:
+                    self.fmap_wr_done = True
+                    self.fmap_idx = 0       
                         
 
 class OutputSerializer(Module):
@@ -176,8 +183,11 @@ class OutputDeserializer(Module):
         self.pass_done = Reg(False)
 
     def configure(self, ofmap, reference, image_size, bias):
-        self.ofmap = ofmap
+        self.ofmap = np.zeros((image_size[0], image_size[1], self.arr_x, 4)).astype(np.int64) # 4x4x8x4
+        #self.ofmap_transformed = ofmap
         self.reference = reference
+        self.num_tiles = 4
+        self.curr_tile = 0
 
         self.image_size = image_size
         self.bias = bias # TODO
@@ -190,8 +200,8 @@ class OutputDeserializer(Module):
     def tick(self):
         if self.pass_done.rd():
             return
-
-        out_sets = self.arr_x//self.chn_per_word
+        print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
+        out_sets = self.arr_x//self.chn_per_word # 2
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
 
         if self.arch_output_chn.valid():
@@ -204,20 +214,30 @@ class OutputDeserializer(Module):
                 cmin = self.curr_set*self.chn_per_word
                 cmax = cmin + self.chn_per_word
                 for c in range(cmin, cmax):
-                    self.ofmap[x, y, c] = data[c-cmin]
+                    self.ofmap[x, y, c, self.curr_tile] = data[c-cmin]
             self.curr_set += 1
 
             if self.curr_set == out_sets:
                 self.curr_set = 0
+                #self.fmap_idx += 1
+                self.curr_tile += 1
+            if self.curr_tile == 4:
                 self.fmap_idx += 1
+                self.curr_tile = 0
             if self.fmap_idx == fmap_per_iteration:
                 self.fmap_idx = 0
                 self.pass_done.wr(True)
+                self.ofmap = self.ofmap//(128*128)
+                print ("reference shape: ", self.reference.shape)
+                print ("ofmap shape: ", self.ofmap.shape)
                 if np.all(self.ofmap == self.reference):
                     raise Finish("Success")
                 else:
+                    print ("ofmap: ")
                     print(self.ofmap)
+                    print ("reference: ")
                     print(self.reference)
+                    print ("difference: ")
                     print(self.ofmap-self.reference)
                     raise Finish("Validation Failed")
 

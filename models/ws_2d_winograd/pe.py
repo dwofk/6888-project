@@ -41,6 +41,7 @@ class PE(Module):
         self.iteration = 0
 
     def tick(self):
+        print ("PE @ (%d, %d) valid signals: " % (self.loc_x, self.loc_y), self.psum_in_chn.valid(), self.ifmap_chn.valid(), self.filter_chn.valid())
         if self.psum_in_chn.valid() and self.ifmap_chn.valid() and self.filter_chn.valid():
             if self.psum_out_chn.vacancy():
                 in_psum = self.psum_in_chn.pop()
