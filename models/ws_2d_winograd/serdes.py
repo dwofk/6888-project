@@ -29,8 +29,8 @@ class InputSerializer(Module):
         self.fmap_idx = 0
 
     def configure(self, ifmap, weights, image_size, filter_size):
-        self.ifmap = ifmap
-        self.weights = weights
+        #self.ifmap = ifmap
+        #self.weights = weights
 
         self.image_size = image_size
         self.filter_size = image_size
@@ -43,6 +43,49 @@ class InputSerializer(Module):
 
         self.fmap_wr_done = False
         self.pass_done.wr(False)
+        
+        # pad the ifmaps
+        ifmap_padded = np.pad(ifmap,1,'constant')
+        ifmap_padded = ifmap_padded[:,:,1:5]
+        
+        # Winograd transforms
+        B_T = np.array([ [1,0,-1,0],
+                     [0,1,1,0],
+                     [0,-1,1,0],
+                     [0,1,0,-1] ])
+        B = B_T.transpose()
+        G = np.array([ [1,0,0],
+                   [0.5,0.5,0.5],
+                   [0.5,-0.5,0.5],
+                   [0,0,1] ])
+        G_T = G.transpose()
+        A_T = np.array([ [1,1,1,0],
+                     [0,1,-1,-1] ])
+        A = A_T.transpose()
+        
+        C = 4 # num channels
+        K = 8 # num filters
+        T = 4 # num tiles
+        U = np.zeros([4,4,C,K]) # 4,4,4,8
+        V = np.zeros([4,4,C,T]) # 4,4,4
+        # FOR LOOPS USED B/C NOT COUNTING OFF CHIP PROCESSING IN PERFORMANCE STATISTICS (will unroll loops in on chip processing)
+        for t in range(T):
+            for k in range(K): # filter
+                for c in range(C): # channel
+                    g = weights[:, :, c, k]# 3x3 filter
+                    U[:,:,c,k] = np.dot(G,np.dot(g,G_T)) # 4x4
+            for c in range(C): # channel
+                x_idx = (t // 2)*2
+                y_idx = (t % 2)*2
+                d = ifmap_padded[x_idx:x_idx+4,y_idx:y_idx+4,c] # 4x4 ifmap tile
+                V[:,:,c,t] = np.dot(B_T,np.dot(d,B)) 
+        # Convert to integers for on chip processing, LOSE ACCURACY -> bit shift
+        U = 128*U; # left shift by 7 bits to avoid precision loss when convert float to int
+        V = 128*V;
+        self.weights = U.astype(np.int64) # transformed weights
+        self.ifmap = V.astype(np.int64) # transformed ifmap
+        print ("U ser: ", self.weights)
+        print ("V ser: ", self.ifmap)
 
     def tick(self):
         if self.pass_done.rd():
@@ -173,6 +216,7 @@ class OutputDeserializer(Module):
         self.arch_output_chn = arch_output_chn
 
         self.ofmap = None
+        self.ofmap_transformed = None
         self.reference = None
 
         self.image_size = (0, 0)
@@ -184,7 +228,7 @@ class OutputDeserializer(Module):
 
     def configure(self, ofmap, reference, image_size, bias):
         self.ofmap = np.zeros((image_size[0], image_size[1], self.arr_x, 4)).astype(np.int64) # 4x4x8x4
-        #self.ofmap_transformed = ofmap
+        self.ofmap_transformed = np.zeros((image_size[0], image_size[1], self.arr_x)).astype(np.int64) # 4x4x8
         self.reference = reference
         self.num_tiles = 4
         self.curr_tile = 0
@@ -194,50 +238,73 @@ class OutputDeserializer(Module):
 
         self.curr_set = 0
         self.fmap_idx = 0
+        self.curr_chn = 0
+        self.A_T = np.array([ [1,1,1,0],[0,1,-1,-1] ])
+        self.A = self.A_T.transpose()
 
         self.pass_done.wr(False)
 
     def tick(self):
         if self.pass_done.rd():
-            return
-        print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
-        out_sets = self.arr_x//self.chn_per_word # 2
-        fmap_per_iteration = self.image_size[0]*self.image_size[1]
+# partly parallelized to be on chip:
+#            x_idx = (self.curr_tile // 2)*2
+#            y_idx = (self.curr_tile % 2)*2
+#            self.ofmap_transformed[x_idx:x_idx+2, y_idx:y_idx+2, self.curr_chn] += np.dot(self.A_T, np.dot(self.ofmap[:,:,self.curr_chn, self.curr_tile],self.A))
+#            self.curr_tile += 1
+#            if self.curr_tile == 4:
+#                self.curr_tile = 0
+#                self.ofmap_transformed[:,:,self.curr_chn] += self.bias[self.curr_chn] # add bias
+#                self.curr_chn += 1
+#            if self.curr_chn == 8:                
+#                print ("reference shape: ", self.reference.shape)
+#                print ("ofmap shape: ", self.ofmap.shape)
 
-        if self.arch_output_chn.valid():
-            data = [e for e in self.arch_output_chn.pop()]
+    # FOR LOOPS USED B/C NOT COUNTING OFF CHIP PROCESSING IN PERFORMANCE STATISTICS (will unroll loops in on chip processing)
+            for k in range(8):
+                self.ofmap_transformed[:,:,k] += self.bias[k] # add bias
+                for t in range(self.num_tiles):
+                    x_idx = (t // 2)*2
+                    y_idx = (t % 2)*2
+                    self.ofmap_transformed[x_idx:x_idx+2,y_idx:y_idx+2,k] += np.dot(self.A_T,np.dot(self.ofmap[:,:,k,t],self.A))
+            if np.all(self.ofmap_transformed == self.reference):
+                raise Finish("Success")
+            else:
+                print ("ofmap: ")
+                print(self.ofmap_transformed)
+                print ("reference: ")
+                print(self.reference)
+                print ("difference: ")
+                print(self.ofmap_transformed-self.reference)
+                raise Finish("Validation Failed")
+        
+        else:
+            print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
+            out_sets = self.arr_x//self.chn_per_word # 2
+            fmap_per_iteration = self.image_size[0]*self.image_size[1]
 
-            x = self.fmap_idx % self.image_size[0]
-            y = self.fmap_idx // self.image_size[0]
+            if self.arch_output_chn.valid():
+                data = [e for e in self.arch_output_chn.pop()]
 
-            if self.curr_set < out_sets:
-                cmin = self.curr_set*self.chn_per_word
-                cmax = cmin + self.chn_per_word
-                for c in range(cmin, cmax):
-                    self.ofmap[x, y, c, self.curr_tile] = data[c-cmin]
-            self.curr_set += 1
+                x = self.fmap_idx % self.image_size[0]
+                y = self.fmap_idx // self.image_size[0]
 
-            if self.curr_set == out_sets:
-                self.curr_set = 0
-                #self.fmap_idx += 1
-                self.curr_tile += 1
-            if self.curr_tile == 4:
-                self.fmap_idx += 1
-                self.curr_tile = 0
-            if self.fmap_idx == fmap_per_iteration:
-                self.fmap_idx = 0
-                self.pass_done.wr(True)
-                self.ofmap = self.ofmap//(128*128)
-                print ("reference shape: ", self.reference.shape)
-                print ("ofmap shape: ", self.ofmap.shape)
-                if np.all(self.ofmap == self.reference):
-                    raise Finish("Success")
-                else:
-                    print ("ofmap: ")
-                    print(self.ofmap)
-                    print ("reference: ")
-                    print(self.reference)
-                    print ("difference: ")
-                    print(self.ofmap-self.reference)
-                    raise Finish("Validation Failed")
+                if self.curr_set < out_sets:
+                    cmin = self.curr_set*self.chn_per_word
+                    cmax = cmin + self.chn_per_word
+                    for c in range(cmin, cmax):
+                        self.ofmap[x, y, c, self.curr_tile] = data[c-cmin]
+                self.curr_set += 1
+
+                if self.curr_set == out_sets:
+                    self.curr_set = 0
+                    #self.fmap_idx += 1
+                    self.curr_tile += 1
+                if self.curr_tile == 4:
+                    self.fmap_idx += 1
+                    self.curr_tile = 0
+                if self.fmap_idx == fmap_per_iteration:
+                    self.fmap_idx = 0
+                    self.curr_tile = 0
+                    self.ofmap = self.ofmap//(128*128)
+                    self.pass_done.wr(True)
 

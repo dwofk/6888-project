@@ -92,6 +92,8 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
             U = u
             V[:,:,:,2*i+j] = v
             M[:,:,:,2*i+j] = m
+    print ("U stimulus: ", U)
+    print ("V stimulus: ", V)
     return y,U,V,M
 
 
@@ -133,9 +135,10 @@ class Stimulus(Module):
         print ("ifmaps winograd: ", ifmaps_winograd)
         print ("weights winograd: ", weights_winograd)
 
-        self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)
-        #self.deserializer.configure(ofmap, reference_winograd, image_size, bias)
-        self.deserializer.configure(ofmap, ofmap_winograd.astype(np.int64), image_size, bias)
+        self.serializer.configure(ifmap, weights, image_size, filter_size)
+        #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)
+        self.deserializer.configure(ofmap, reference_winograd, image_size, bias)
+        #self.deserializer.configure(ofmap, ofmap_winograd.astype(np.int64), image_size, bias)
         
         #self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
         #self.deserializer.configure(ofmap, reference_winograd, image_size)
