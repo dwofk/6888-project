@@ -12,7 +12,7 @@ class PE(Module):
         self.loc_y = loc_y
         
         self.stat_type = 'aggregate'
-        self.raw_stats = {'pe_mac' : 0}
+        self.raw_stats = {'pe_mac' : 0, 'pe_to_pe_acc' : 0, 'rf_to_pe_acc' : 0, 'pe_out_psum': 0}
 
         # IO channels
         self.ifmap_chn = ifmap_chn
@@ -42,9 +42,14 @@ class PE(Module):
                 self.filter_chn.valid():
             if self.psum_out_chn.vacancy():
                 in_psum = self.psum_in_chn.pop()
+                if self.loc_y != 0: # getting in psum from PE above
+                    self.raw_stats['pe_to_pe_acc'] += 1   
                 ifmap = self.ifmap_chn.pop()
                 weight = self.filter_chn.peek()
+                self.raw_stats['rf_to_pe_acc'] += 1    # TODO
                 self.psum_out_chn.push(in_psum+ifmap*weight)
+                if self.loc_y == 3: # self.arr_y
+                    self.raw_stats['pe_out_psum'] += 1
                 self.raw_stats['pe_mac'] += 1
                 #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, \
                 #                                       self.iteration, self.fmap_idx))
@@ -53,4 +58,5 @@ class PE(Module):
                 if self.fmap_idx == self.fmap_per_iteration:
                     self.fmap_idx = 0
                     self.filter_chn.pop()
+                    self.raw_stats['rf_to_pe_acc'] -= 1
                     self.iteration += 1

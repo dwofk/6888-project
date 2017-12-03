@@ -109,7 +109,7 @@ class InputDeserializer(Module):
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0}
+        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn
@@ -148,6 +148,10 @@ class InputDeserializer(Module):
                 # print "des to ", target_str
                 data = [e for e in self.arch_input_chn.pop()]
                 self.raw_stats['dram_rd'] += len(data)
+                if (target_str == 'ifmap') or (target_str == 'psum'):
+                    self.raw_stats['dram_to_glb_acc'] += len(data)
+                if target_str == 'weights':
+                    self.raw_stats['dram_to_pe_acc'] += len(data)
                 target_chn.push(data)
                 self.curr_set += 1
                 if self.fmap_idx < fmap_per_iteration:

@@ -144,7 +144,7 @@ class PSumWrNoC(Module):
         self.name = 'psum_wr_noc'
         
         self.stat_type = 'show'
-        self.raw_stats = {'noc_multicast' : 0}
+        self.raw_stats = {'noc_multicast' : 0, 'pe_to_glb_acc' : 0, 'pe_to_dram_acc' : 0}
 
         self.rd_chns = rd_chns
         self.glb_chn = glb_chn
@@ -183,6 +183,10 @@ class PSumWrNoC(Module):
                 data = [ self.rd_chns[x].pop() for x in range(xmin, xmax) ]
                 # print("psum_to_glb: ", self.iteration, self.psum_idx, xmin, xmax, data)
                 self.raw_stats['noc_multicast'] += len(data)
+                if target_chn == self.output_chn:
+                    self.raw_stats['pe_to_dram_acc'] += len(data)
+                else: # to self.glb_chn
+                    self.raw_stats['pe_to_glb_acc'] += len(data)
                 target_chn.push(data)
 
                 self.curr_set += 1

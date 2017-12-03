@@ -10,7 +10,7 @@ class IFMapGLB(Module):
         self.name = 'ifmap_glb'
         
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0}
+        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0, 'glb_to_pe_acc': 0}
 
 
         self.sram = SRAM(glb_depth, chn_per_word)
@@ -100,6 +100,7 @@ class IFMapGLB(Module):
                 print("ifmap rd glb", data, self.iteration)
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
+                self.raw_stats['glb_to_pe_acc'] += len(data)
 
 class PSumGLB(Module):
     def instantiate(self, dram_wr_chn, noc_wr_chn, rd_chn, glb_depth, chn_per_word):
@@ -110,7 +111,7 @@ class PSumGLB(Module):
         self.name = 'psum_glb'
         
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0}
+        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0, 'glb_to_pe_acc': 0}
 
         self.sram = SRAM(glb_depth, chn_per_word, nports=2)
         self.last_read = Channel(3)
@@ -188,6 +189,7 @@ class PSumGLB(Module):
                         [e for e in self.sram.response()]
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
+                self.raw_stats['glb_to_pe_acc'] += len(data)
                 print("psum rd glb: data", data)
 
             if self.noc_wr_chn.valid():
