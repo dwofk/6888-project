@@ -193,12 +193,11 @@ class OutputDeserializer(Module):
         
         self.pass_done = Reg(False)
 
-    def configure(self, ofmap, reference, image_size, filter_size):
+    def configure(self, ofmap, reference, image_size):
         self.ofmap = ofmap
         self.reference = reference
 
         self.image_size = image_size
-        self.filter_size = filter_size
 
         self.curr_set = 0
         self.fmap_idx = 0
@@ -210,17 +209,13 @@ class OutputDeserializer(Module):
             return
 
         out_sets = self.arr_x//self.chn_per_word
-        #fmap_per_iteration = self.image_size[0]*self.image_size[1]
-        fmap_per_iteration = (self.image_size[0]-self.filter_size[0]+1)*(self.image_size[1]-self.filter_size[1]+1)
+        fmap_per_iteration = self.image_size[0]*self.image_size[1]
 
         if self.arch_output_chn.valid():
             data = [e for e in self.arch_output_chn.pop()]
-            
+
             x = self.fmap_idx % self.image_size[0]
             y = self.fmap_idx // self.image_size[0]
-            
-            x = self.fmap_idx % (self.image_size[0]-self.filter_size[0]+1)
-            y = self.fmap_idx // (self.image_size[0]-self.filter_size[0]+1)
 
             if self.curr_set < out_sets:
                 cmin = self.curr_set*self.chn_per_word

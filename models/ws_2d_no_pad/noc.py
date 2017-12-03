@@ -84,10 +84,10 @@ class IFMapNoC(Module):
             if vacancy:
                 data = self.rd_chn.pop()
                 self.raw_stats['noc_multicast'] += len(data)
-                #print("ifmap_to_pe", ymin, ymax, data)
+                # print("ifmap_to_pe", ymin, ymax, data)
                 for y in range(ymin, ymax):
                     for x in range(self.arr_x):
-                        #print("writing ifmap to y, x, data: ", y, x, data[y-ymin])
+                        print("writing ifmap to y, x, data: ", y, x, data[y-ymin])
                         self.wr_chns[y][x].push(data[y-ymin])
 
                 self.curr_set += 1
