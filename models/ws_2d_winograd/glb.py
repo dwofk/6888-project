@@ -11,7 +11,7 @@ class IFMapGLB(Module):
         self.name = 'ifmap_glb'
         
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0}
+        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0, 'glb_to_pe_acc': 0}
 
 
         self.sram = SRAM(glb_depth, chn_per_word)
@@ -83,6 +83,7 @@ class IFMapGLB(Module):
                 # print "ifmap rd glb", data
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
+                self.raw_stats['glb_to_pe_acc'] += len(data)
 
 class WeightsGLB(Module):
     def instantiate(self, wr_chn, rd_chn):

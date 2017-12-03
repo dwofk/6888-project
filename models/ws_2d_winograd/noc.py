@@ -99,8 +99,8 @@ class PSumRdNoC(Module):
         self.chn_per_word = chn_per_word
         self.name = 'psum_rd_noc'
         
-        self.stat_type = 'show'
-        self.raw_stats = {'noc_multicast' : 0}
+        #self.stat_type = 'show'
+        #self.raw_stats = {'noc_multicast' : 0}
 
         #self.rd_chn = rd_chn
         self.wr_chns = wr_chns

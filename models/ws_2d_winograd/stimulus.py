@@ -98,7 +98,7 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
 
 
 class Stimulus(Module):
-    def instantiate(self, arr_x, arr_y, chn_per_word, input_chn, output_chn):
+    def instantiate(self, arr_x, arr_y, chn_per_word, input_chn, output_chn, finish_signal_chn):
         # PE static configuration (immutable)
         self.arr_x = arr_x
         self.arr_y = arr_y
@@ -106,11 +106,13 @@ class Stimulus(Module):
 
         self.input_chn = input_chn
         self.output_chn = output_chn
+        
+        self.finish_signal_chn = finish_signal_chn
 
         self.serializer = InputSerializer(self.input_chn, self.arr_x,
             self.arr_y, self.chn_per_word)
         self.deserializer = OutputDeserializer(self.output_chn, self.arr_x,
-            self.arr_y, self.chn_per_word)
+            self.arr_y, self.chn_per_word, self.finish_signal_chn)
 
     def configure(self, image_size, filter_size, in_chn, out_chn):
         # Test data

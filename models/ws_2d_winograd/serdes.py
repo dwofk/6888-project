@@ -139,7 +139,7 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0}
+        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn
@@ -178,6 +178,10 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
                 data = [e for e in self.arch_input_chn.pop()]
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
+                if target_str == 'ifmap':
+                    self.raw_stats['dram_to_glb_acc'] += len(data)
+                if target_str == 'weights':
+                    self.raw_stats['dram_to_pe_acc'] += len(data)
                 self.fmap_tile += 1
                 if self.fmap_tile == self.num_tiles:
                     self.fmap_tile = 0
@@ -207,13 +211,15 @@ class OutputSerializer(Module):
                 self.raw_stats['dram_wr'] += len(data)
 
 class OutputDeserializer(Module):
-    def instantiate(self, arch_output_chn, arr_x, arr_y, chn_per_word):
+    def instantiate(self, arch_output_chn, arr_x, arr_y, chn_per_word, finish_signal_chn):
         # PE static configuration (immutable)
         self.arr_x = arr_x
         self.arr_y = arr_y
         self.chn_per_word = chn_per_word
 
         self.arch_output_chn = arch_output_chn
+        
+        self.finish_signal_chn = finish_signal_chn
 
         self.ofmap = None
         self.ofmap_transformed = None
@@ -266,6 +272,7 @@ class OutputDeserializer(Module):
                     x_idx = (t // 2)*2
                     y_idx = (t % 2)*2
                     self.ofmap_transformed[x_idx:x_idx+2,y_idx:y_idx+2,k] += np.dot(self.A_T,np.dot(self.ofmap[:,:,k,t],self.A))
+            self.finish_signal_chn.push(True)
             if np.all(self.ofmap_transformed == self.reference):
                 raise Finish("Success")
             else:
