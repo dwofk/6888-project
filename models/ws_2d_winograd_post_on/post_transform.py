@@ -4,7 +4,7 @@ from nnsim.channel import Channel
 
 
 class PostTransform(Module):
-    def instantiate(self, bias_chn, ofmap_in_chn, ofmap_out_chn, locx, locy): #ofmap_in
+    def instantiate(self, locx, locy, bias_chn, ofmap_in_chn, ofmap_out_chn): #ofmap_in
         self.locx = locx
         self.locy = locy
         self.bias_chn = bias_chn
@@ -12,7 +12,7 @@ class PostTransform(Module):
         self.ofmap_out_chn = ofmap_out_chn
         self.transform_done = Reg(False)
         
-    def configure(self, locx, locy):
+    def configure(self):
         self.iteration = 0
         self.y00 = 0
         self.y01 = 0
