@@ -53,7 +53,7 @@ class PostTransform(Module):
             self.y01 += bias
             self.y10 += bias
             self.y11 += bias
-        elif self.ofmap_in_chn.valid() and self.iteration < 16:
+        elif self.ofmap_in_chn.valid() and self.ofmap_out_chn.vacancy():
             m = self.ofmap_in_chn.pop()
             if (self.iteration == 0):    # get M_00
                 self.y00 += m
@@ -94,9 +94,11 @@ class PostTransform(Module):
                 self.y01 -= m
                 self.y10 -= m
                 self.y11 += m
+                self.ofmap_out_chn.push(self.y00) # y00 done
             elif (self.iteration == 11): # get M_23
                 self.y01 -= m
                 self.y11 += m
+                self.ofmap_out_chn.push(self.y01) # y01 done
             elif (self.iteration == 12): # get M_30     
                 self.y10 -= m
             elif (self.iteration == 13): # get M_31
@@ -105,9 +107,10 @@ class PostTransform(Module):
             elif (self.iteration == 14): # get M_32     
                 self.y10 -= m
                 self.y11 += m
+                self.ofmap_out_chn.push(self.y10) # y10 done
             elif (self.iteration == 15): # get M_33
                 self.y11 += m
+                self.ofmap_out_chn.push(self.y11) # y11 done
             self.iteration += 1
-        if self.iteration == 16 and self.ofmap_out_chn.vacancy():
-            self.ofmap_out_chn.push([self.y00,self.y01,self.y10,self.y11])
+        if self.iteration == 16:
             self.transform_done.wr(True)
