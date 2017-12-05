@@ -137,7 +137,7 @@ class Stimulus(Module):
         print ("ifmaps winograd: ", ifmaps_winograd)
         print ("weights winograd: ", weights_winograd)
 
-        self.serializer.configure(ifmap, weights, image_size, filter_size)
+        self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
         #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)
         self.deserializer.configure(ofmap, reference_winograd, image_size, bias)
         #self.deserializer.configure(ofmap, ofmap_winograd.astype(np.int64), image_size, bias)

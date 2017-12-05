@@ -5,8 +5,8 @@ from nnsim.channel import Channel
 from .pe import PE
 from .post_transform import PostTransform
 from .serdes import InputDeserializer, OutputSerializer
-from .glb import IFMapGLB, WeightsGLB
-from .noc import IFMapNoC, WeightsNoC, PSumRdNoC, PSumWrNoC
+from .glb import IFMapGLB, WeightsGLB, BiasGLB
+from .noc import IFMapNoC, WeightsNoC, PSumRdNoC, PSumWrNoC, BiasNoC, PostTrWrNoC, PostTrRdNoC
 
 class WSArch(Module):
     def instantiate(self, arr_x, arr_y,
@@ -94,14 +94,14 @@ class WSArch(Module):
             self.post_tr_array.append(ModuleList())
             self.post_tr_bias_chns.append(ModuleList())
             self.post_tr_ofmap_in_chns.append(ModuleList())
-            self.post_tr_ifmap_in_chns.append(ModuleList())
+            self.post_tr_ofmap_out_chns.append(ModuleList())
             for x in range(self.post_tr_x):
                 self.post_tr_bias_chns[y].append(Channel(32))
                 self.post_tr_ofmap_in_chns[y].append(Channel(32))
                 self.post_tr_ofmap_out_chns[y].append(Channel(32))
                 self.post_tr_array[y].append(
-                    PE(x, y,
-                        self.post_tr_bias_chn[y][x],
+                    PostTransform(x, y,
+                        self.post_tr_bias_chns[y][x],
                         self.post_tr_ofmap_in_chns[y][x],
                         self.post_tr_ofmap_out_chns[y][x],
                     )
@@ -110,9 +110,9 @@ class WSArch(Module):
         # Setup NoC to deliver weights, ifmaps and psums
         self.filter_noc = WeightsNoC(self.weights_rd_chn, self.pe_filter_chns, self.chn_per_word)
         self.ifmap_noc = IFMapNoC(self.ifmap_rd_chn, self.pe_ifmap_chns, self.arr_x, self.chn_per_word)
-        #self.psum_rd_noc = PSumRdNoC(self.pe_psum_chns[0], self.chn_per_word)
+        self.psum_rd_noc = PSumRdNoC(self.pe_psum_chns[0], self.chn_per_word)
         #self.psum_wr_noc = PSumWrNoC(self.pe_psum_chns[-1], self.psum_output_chn, self.chn_per_word)
-        self.bias_noc = BiasNoc(self.bias_rd_chn, self.post_tr_bias_chns, self.chn_per_word)
+        self.bias_noc = BiasNoC(self.bias_rd_chn, self.post_tr_bias_chns, self.chn_per_word)
         self.post_tr_wr_noc = PostTrWrNoC(self.pe_psum_chns[-1], self.post_tr_ofmap_in_chns, self.chn_per_word)
         self.post_tr_rd_noc = PostTrRdNoC(self.post_tr_ofmap_out_chns, self.psum_output_chn, self.chn_per_word)
 
@@ -127,9 +127,10 @@ class WSArch(Module):
         #   self.psum_glb.configure(filter_size, out_sets, fmap_per_iteration)
         self.filter_noc.configure(in_sets, self.arr_x)
         self.ifmap_noc.configure(in_sets)
-        self.post_tr_wr_noc.configure(post_tr_x, post_tr_y)
+        self.bias_noc.configure(self.post_tr_x, self.post_tr_y)
+        self.post_tr_wr_noc.configure(self.post_tr_x, self.post_tr_y)
         self.post_tr_rd_noc.configure()
-        #self.psum_rd_noc.configure(self.arr_x)
+        self.psum_rd_noc.configure(self.arr_x)
         #self.psum_wr_noc.configure(num_iteration, fmap_per_iteration, out_sets)
 
         for y in range(self.arr_y):

@@ -163,18 +163,20 @@ class PostTrWrNoC(Module):
         valid = True
         for x in range(self.arr_x):
             valid = valid and self.rd_chns[x].valid()
+            #print("post tr wr noc -- rd chan %d valid" % x)
 
         if valid:
             
             vacancy = True
             for x in range(self.arr_x):
-                    vacancy = vacancy and self.wr_chns[curr_tile][x].vacancy()
+                    vacancy = vacancy and self.wr_chns[self.curr_tile][x].vacancy()
             
             if vacancy:
                 
                 for x in range(self.arr_x):
                     data = self.rd_chns[x].pop()
-                    self.wr_chns[curr_tile][x].push(data)
+                    self.wr_chns[self.curr_tile][x].push(data)
+                    #print("post tr wr noc -- pop from rd_chn %d, push to wr_chn %d %d", x, self.curr_tile, x)
                     #self.raw_stats['noc_multicast'] += len(data)
 
                 self.curr_tile += 1
@@ -212,13 +214,13 @@ class PostTrRdNoC(Module):
         xmin = self.curr_set*self.chn_per_word
         xmax = xmin + self.chn_per_word
         for x in range(xmin, xmax):
-            valid = valid and self.rd_chns[curr_tile][x].valid()
+            valid = valid and self.rd_chns[self.curr_tile][x].valid()
 
         if valid:
             target_chn = self.output_chn
             
             if target_chn.vacancy():
-                data = [ self.rd_chns[curr_tile][x].pop() for x in range(xmin, xmax) ]
+                data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(xmin, xmax) ]
                 target_chn.push(data)
                 #self.raw_stats['noc_multicast'] += len(data)
 
