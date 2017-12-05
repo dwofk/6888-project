@@ -221,6 +221,7 @@ class PostTrRdNoC(Module):
             
             if target_chn.vacancy():
                 data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(xmin, xmax) ]
+                print("post tr rd noc -- pushing from rd_chn ", self.curr_tile, data)
                 target_chn.push(data)
                 #self.raw_stats['noc_multicast'] += len(data)
 
