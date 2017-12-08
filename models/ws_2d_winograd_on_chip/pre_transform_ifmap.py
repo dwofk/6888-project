@@ -4,7 +4,7 @@ from nnsim.channel import Channel
 
 
 class PreTransformIFMap(Module):
-    def instantiate(self, locx, locy, ifmap_in_chn, ifmap_out_chn): #ofmap_in
+    def instantiate(self, locx, locy, ifmap_in_chn, ifmap_out_chn): 
         self.locx = locx
         self.locy = locy
         self.ifmap_in_chn = ifmap_in_chn
@@ -142,35 +142,35 @@ class PreTransformIFMap(Module):
                 self.iteration += 1
                 print("post tr pushing y00: ", self.y00, self.bias)
             elif (self.iteration == 11): # get D_23
-                self.v03 += d
-                self.v13 -= d
-                self.v23 -= d
+                self.V[0][3] += d
+                self.V[1][3] -= d
+                self.V[2][3] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y01: ", self.y01, self.bias)
             elif (self.iteration == 12): # get D_30     
-                self.v30 -= d
+                self.V[3][0] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 13): # get D_31
-                self.v31 -= d
-                self.v32 += d
-                self.v33 -= d
+                self.V[3][1] -= d
+                self.V[3][2] += d
+                self.V[3][3] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 14): # get D_32     
-                self.v30 += d
-                self.v31 -= d
-                self.v32 -= d
+                self.V[3][0] += d
+                self.V[3][1] -= d
+                self.V[3][2] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y10: ", self.y10, self.bias)
             elif (self.iteration == 15): # get D_33
-                self.v33 += d
+                self.V[3][3] += d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
