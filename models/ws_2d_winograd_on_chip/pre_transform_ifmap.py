@@ -40,28 +40,28 @@ class PreTransformIFMap(Module):
 #         v20 v21 v22 v23
 #         v30 v31 v32 v33]
 #    ... such that:
-#    v00 = (D00 - D02 - D20 + D22)>>7;
-#    v01 = (D01 + D02 - D21 - D22)>>7;
-#    v02 = (D02 - D01 + D21 - D22)>>7;
-#    v03 = (D01 - D03 - D21 + D23)>>7;
-#    v10 = (D10 - D12 + D20 - D22)>>7;
-#    v11 = (D11 + D12 + D21 + D22)>>7;
-#    v12 = (D12 - D11 - D21 + D22)>>7;
-#    v13 = (D11 - D13 + D21 - D23)>>7;
-#    v20 = (D12 - D10 + D20 - D22)>>7;
-#    v21 = (D21 - D12 - D11 + D22)>>7;
-#    v22 = (D11 - D12 - D21 + D22)>>7;
-#    v23 = (D13 - D11 + D21 - D23)>>7;
-#    v30 = (D10 - D12 - D30 + D32)>>7;
-#    v31 = (D11 + D12 - D31 - D32)>>7;
-#    v32 = (D12 - D11 + D31 - D32)>>7;
-#    v33 = (D11 - D13 - D31 + D33)>>7;
+#    v00 = (D00 - D02 - D20 + D22);
+#    v01 = (D01 + D02 - D21 - D22);
+#    v02 = (D02 - D01 + D21 - D22);
+#    v03 = (D01 - D03 - D21 + D23);
+#    v10 = (D10 - D12 + D20 - D22);
+#    v11 = (D11 + D12 + D21 + D22);
+#    v12 = (D12 - D11 - D21 + D22);
+#    v13 = (D11 - D13 + D21 - D23);
+#    v20 = (D12 - D10 + D20 - D22);
+#    v21 = (D21 - D12 - D11 + D22);
+#    v22 = (D11 - D12 - D21 + D22);
+#    v23 = (D13 - D11 + D21 - D23);
+#    v30 = (D10 - D12 - D30 + D32);
+#    v31 = (D11 + D12 - D31 - D32);
+#    v32 = (D12 - D11 + D31 - D32);
+#    v33 = (D11 - D13 - D31 + D33);
 
     def tick(self):
         if self.transform_done.rd():
             return
         if self.ifmap_in_chn.valid() and self.ifmap_out_chn.vacancy():
-            d = (self.dfmap_in_chn.pop())
+            d = (self.ifmap_in_chn.pop())
             print("post tr -- iteration ", self.iteration)
             if (self.iteration == 0):    # get D_00
                 self.V[0][0] += d
@@ -175,7 +175,6 @@ class PreTransformIFMap(Module):
                 self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y11: ", self.y11, self.bias)
-            #self.iteration += 1
         elif self.iteration == 16 and self.ifmap_out_chn.vacancy():
             self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
             self.push_ctr += 1

@@ -57,7 +57,7 @@ class PostTransform(Module):
             self.y10 += self.bias
             self.y11 += self.bias
         elif self.ofmap_in_chn.valid() and self.ofmap_out_chn.vacancy():
-            m = (self.ofmap_in_chn.pop())//(128*128) # right shift by 14 bits
+            m = (self.ofmap_in_chn.pop())//(128) # right shift by 7 bits
             print("post tr -- iteration ", self.iteration)
             if (self.iteration == 0):    # get M_00
                 self.y00 += m
