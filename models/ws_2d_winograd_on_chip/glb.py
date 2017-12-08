@@ -84,6 +84,22 @@ class IFMapGLB(Module):
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
                 self.raw_stats['glb_to_pe_acc'] += len(data)
+                
+class BiasGLB(Module):
+    def instantiate(self, wr_chn, rd_chn):
+        self.wr_chn = wr_chn
+        self.rd_chn = rd_chn
+        self.name = 'bias_glb'
+        
+        self.stat_type = 'show'
+        self.raw_stats = {'size' : (0, 0), 'rd': 0, 'wr': 0}
+        
+    def tick(self):
+        if self.wr_chn.valid() and self.rd_chn.vacancy():
+            data = self.wr_chn.pop()
+            self.rd_chn.push(data)
+            self.raw_stats['rd'] += len(data)
+            self.raw_stats['wr'] += len(data)
 
 class WeightsGLB(Module):
     def instantiate(self, wr_chn, rd_chn):

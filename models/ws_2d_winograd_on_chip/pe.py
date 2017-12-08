@@ -41,7 +41,7 @@ class PE(Module):
         self.iteration = 0
 
     def tick(self):
-        print ("PE @ (%d, %d) valid signals: " % (self.loc_x, self.loc_y), self.psum_in_chn.valid(), self.ifmap_chn.valid(), self.filter_chn.valid())
+        #print ("PE @ (%d, %d) valid signals: " % (self.loc_x, self.loc_y), self.psum_in_chn.valid(), self.ifmap_chn.valid(), self.filter_chn.valid())
         if self.psum_in_chn.valid() and self.ifmap_chn.valid() and self.filter_chn.valid():
             if self.psum_out_chn.vacancy():
                 in_psum = self.psum_in_chn.pop()
@@ -51,17 +51,15 @@ class PE(Module):
                 weight = self.filter_chn.peek()
                 self.raw_stats['rf_to_pe_acc'] += 1    # TODO
                 self.psum_out_chn.push(in_psum+ifmap*weight)
-                if self.loc_y == 3: # self.arr_y
-                    self.raw_stats['pe_to_dram_acc'] += 1 
                 self.raw_stats['pe_mac'] += 1
                 #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, \
                 #                                       self.iteration, self.fmap_idx))
-                print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))     
+                #print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))     
                 self.curr_tile += 1
                 if self.curr_tile == self.num_tiles:
                     self.curr_tile = 0
                     self.filter_chn.pop()
                     self.raw_stats['rf_to_pe_acc'] -= 1
                     self.iteration += 1
-                if self.iteration == self.num_iteration:
-                    print("PE calculations for PE(%d, %d) should be done now!" % (self.loc_x, self.loc_y))
+                #if self.iteration == self.num_iteration:
+                #    print("PE calculations for PE(%d, %d) should be done now!" % (self.loc_x, self.loc_y))
