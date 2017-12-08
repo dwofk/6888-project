@@ -3,7 +3,7 @@ from nnsim.reg import Reg
 from nnsim.channel import Channel
 
 
-class PostTransform(Module):
+class PreTransformIFMAP(Module):
     def instantiate(self, locx, locy, ifmap_in_chn, ifmap_out_chn): #ofmap_in
         self.locx = locx
         self.locy = locy
