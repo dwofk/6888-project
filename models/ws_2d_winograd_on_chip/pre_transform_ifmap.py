@@ -3,7 +3,7 @@ from nnsim.reg import Reg
 from nnsim.channel import Channel
 
 
-class PreTransformIFMAP(Module):
+class PreTransformIFMap(Module):
     def instantiate(self, locx, locy, ifmap_in_chn, ifmap_out_chn): #ofmap_in
         self.locx = locx
         self.locy = locy
@@ -13,22 +13,8 @@ class PreTransformIFMAP(Module):
         
     def configure(self):
         self.iteration = 0
-        self.v00 = 0
-        self.v01 = 0
-        self.v02 = 0
-        self.v03 = 0
-        self.v10 = 0
-        self.v11 = 0
-        self.v12 = 0
-        self.v13 = 0
-        self.v20 = 0
-        self.v21 = 0
-        self.v22 = 0
-        self.v23 = 0
-        self.v30 = 0
-        self.v31 = 0
-        self.v32 = 0
-        self.v33 = 0
+        self.push_ctr = 0
+        self.V = np.zeros([4,4]).astype(np.int64)
         self.transform_done.wr(False)
         
 # Explanation of algorithm: transform ifmap D into V, performing Winograd transform v = B_T*D*M
@@ -75,112 +61,123 @@ class PreTransformIFMAP(Module):
         if self.transform_done.rd():
             return
         if self.ifmap_in_chn.valid() and self.ifmap_out_chn.vacancy():
-            d = (self.dfmap_in_chn.pop())*128 # left shift by 7 bits # TODO: NECESSARY???
+            d = (self.dfmap_in_chn.pop())
             print("post tr -- iteration ", self.iteration)
             if (self.iteration == 0):    # get D_00
-                self.v00 += d
+                self.V[0][0] += d
                 self.iteration += 1
             elif (self.iteration == 1):  # get D_01
-                self.v01 += d
-                self.v02 -= d
-                self.v03 += d
+                self.V[0][1] += d
+                self.V[0][2] -= d
+                self.V[0][3] += d
                 self.iteration += 1
             elif (self.iteration == 2):  # get D_02     
-                self.v00 -= d
-                self.v01 += d
-                self.v02 += d
+                self.V[0][0] -= d
+                self.V[0][1] += d
+                self.V[0][2] += d
                 self.iteration += 1
             elif (self.iteration == 3):  # get D_03
-                self.v03 -= d
+                self.V[0][3] -= d
                 self.iteration += 1
             elif (self.iteration == 4):  # get D_10     
-                self.v10 += d
-                self.v20 -= d
-                self.v30 += d
+                self.V[1][0] += d
+                self.V[2][0] -= d
+                self.V[3][0] += d
                 self.iteration += 1
             elif (self.iteration == 5):  # get D_11     
-                self.v11 += d
-                self.v12 -= d
-                self.v13 += d
-                self.v21 -= d
-                self.v22 += d
-                self.v23 -= d
-                self.v31 += d
-                self.v32 -= d
-                self.v33 += d
+                self.V[1][1] += d
+                self.V[1][2] -= d
+                self.V[1][3] += d
+                self.V[2][1] -= d
+                self.V[2][2] += d
+                self.V[2][3] -= d
+                self.V[3][1] += d
+                self.V[3][2] -= d
+                self.V[3][3] += d
                 self.iteration += 1
             elif (self.iteration == 6):  # get D_12
-                self.v10 -= d
-                self.v11 += d
-                self.v12 += d
-                self.v20 += d
-                self.v21 -= d
-                self.v22 -= d
-                self.v30 -= d
-                self.v31 += d
-                self.v32 += d
+                self.V[1][0] -= d
+                self.V[1][1] += d
+                self.V[1][2] += d
+                self.V[2][0] += d
+                self.V[2][1] -= d
+                self.V[2][2] -= d
+                self.V[3][0] -= d
+                self.V[3][1] += d
+                self.V[3][2] += d
                 self.iteration += 1
             elif (self.iteration == 7):  # get D_13
-                self.v13 -= d
-                self.v23 += d
-                self.v33 -= d
+                self.V[1][3] -= d
+                self.V[2][3] += d
+                self.V[3][3] -= d
                 self.iteration += 1
             elif (self.iteration == 8):  # get D_20
-                self.v00 -= d
-                self.v10 += d
-                self.v20 += d
+                self.V[0][0] -= d
+                self.V[1][0] += d
+                self.V[2][0] += d
                 self.iteration += 1
             elif (self.iteration == 9):  # get D_21     
-                self.v01 -= d
-                self.v02 += d
-                self.v03 -= d
-                self.v11 += d
-                self.v22 -= d
-                self.v13 += d
-                self.v21 += d
-                self.v22 -= d
-                self.v23 += d
+                self.V[0][1] -= d
+                self.V[0][2] += d
+                self.V[0][3] -= d
+                self.V[1][1] += d
+                self.V[1][2] -= d
+                self.V[1][3] += d
+                self.V[2][1] += d
+                self.V[2][2] -= d
+                self.V[2][3] += d
                 self.iteration += 1
-            elif (self.iteration == 10): # get D_22       
-                self.v00 += d
-                self.v01 -= d
-                self.v02 -= d
-                self.v10 -= d
-                self.v11 += d
-                self.v12 += d
-                self.v20 -= d
-                self.v21 += d
-                self.v22 += d
+            elif (self.iteration == 10): # get D_22 & start pushing transformed data out
+                self.V[0][0] += d
+                self.V[0][1] -= d
+                self.V[0][2] -= d
+                self.V[1][0] -= d
+                self.V[1][1] += d
+                self.V[1][2] += d
+                self.V[2][0] -= d
+                self.V[2][1] += d
+                self.V[2][2] += d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y00: ", self.y00, self.bias)
-                self.ofmap_out_chn.push(self.y00) # y00 done
             elif (self.iteration == 11): # get D_23
                 self.v03 += d
                 self.v13 -= d
                 self.v23 -= d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y01: ", self.y01, self.bias)
-                self.ofmap_out_chn.push(self.y01) # y01 done
             elif (self.iteration == 12): # get D_30     
                 self.v30 -= d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 13): # get D_31
                 self.v31 -= d
                 self.v32 += d
                 self.v33 -= d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 14): # get D_32     
                 self.v30 += d
                 self.v31 -= d
                 self.v32 -= d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y10: ", self.y10, self.bias)
-                self.ofmap_out_chn.push(self.y10) # y10 done
             elif (self.iteration == 15): # get D_33
                 self.v33 += d
+                self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                self.push_ctr += 1
                 self.iteration += 1
                 print("post tr pushing y11: ", self.y11, self.bias)
-                self.ofmap_out_chn.push(self.y11) # y11 done
             #self.iteration += 1
-        if self.iteration == 16:
-            self.transform_done.wr(True)
+        elif self.iteration == 16 and self.ifmap_out_chn.vacancy():
+            self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+            self.push_ctr += 1
+            if self.push_ctr == 16: # all 16 transformed ifmap values have been pushed
+                self.transform_done.wr(True)
