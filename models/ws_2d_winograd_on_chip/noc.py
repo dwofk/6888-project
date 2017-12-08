@@ -4,7 +4,7 @@ class WeightsNoC(Module):
     def instantiate(self, rd_chn, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'weight_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
@@ -40,7 +40,7 @@ class WeightsNoC(Module):
                     self.wr_chns[y][self.curr_filter].push(data[y])
 
                 self.curr_set += 1
-                if self.curr_set == self.filter_sets: 
+                if self.curr_set == self.filter_sets:
                     self.curr_set = 0
                     self.curr_filter += 1
                 if self.curr_filter == self.out_chn:
@@ -51,7 +51,7 @@ class IFMapNoC(Module):
         self.arr_x = arr_x
         self.chn_per_word = chn_per_word
         self.name = 'ifmap_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
@@ -93,33 +93,33 @@ class IFMapNoC(Module):
                 self.curr_set += 1
                 if self.curr_set == self.ifmap_sets:
                     self.curr_set = 0
-                    
+
 class BiasNoC(Module):
     def instantiate(self, rd_chn, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'bias_noc'
-        
+
         #self.stat_type = 'show'
         #self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chn = rd_chn
         self.wr_chns = wr_chns
-        
+
     def configure(self, arr_x, arr_y):
         self.arr_x = arr_x
         self.arr_y = arr_y
-        
+
         self.bias_sets = self.arr_x // self.chn_per_word
         self.curr_set = 0
 
     def tick(self):
         # Feed biases to the PostTransform array from the Bias GLB
-        
+
         if self.rd_chn.valid():
-        
+
             xmin = self.curr_set*self.chn_per_word
             xmax = xmin + self.chn_per_word
-        
+
             vacancy = True
             for x in range(xmin, xmax):
                 for y in range(self.arr_y):
@@ -132,47 +132,214 @@ class BiasNoC(Module):
                     for y in range(self.arr_y):
                         self.wr_chns[y][x].push(data[x-xmin])
                         print ("bias_to_post_tr: x, data: ", x, 0)
-                        
+
                 self.curr_set += 1
                 if self.curr_set == self.bias_sets:
                     self.curr_set = 0
+
+class PreTrIFMapWrNoC(Module):
+    def instantiate(self, rd_chn, wr_chns, chn_per_word):
+        self.chn_per_word = chn_per_word
+        self.name = 'pre_tr_ifmap_wr_noc'
+
+        #self.stat_type = 'show'
+        #self.raw_stats = {'noc_multicast' : 0}
+
+        self.rd_chn = rd_chn
+        self.wr_chns = wr_chns
+
+    def configure(self, arr_x):
+        self.arr_x = arr_x
+
+        self.num_tiles = 4
+        self.curr_tile = 0
+
+        self.iteration = 0
+        self.num_iterations = 16 # 4x4 ifmap in
+
+    def tick(self):
+
+        if self.rd_chn.valid():
+
+            vacancy = True
+            for x in range(self.arr_x):
+                    vacancy = vacancy and self.wr_chns[self.curr_tile][x].vacancy()
+
+            if vacancy:
+
+                data = self.rd_chn.pop()
+                for x in range(self.arr_x):
+                    self.wr_chns[self.curr_tile][x].push(data[x])
+                #self.raw_stats['noc_multicast'] += len(data)
+
+                self.curr_tile += 1
+                if self.curr_tile == self.num_tiles:
+                    self.curr_tile = 0
+                    self.iteration += 1
+                if self.iteration == self.num_iterations:
+                    self.iteration = 0
+
+class PreTrIFMapRdNoC(Module):
+    def instantiate(self, rd_chns, output_chn, chn_per_word):
+        self.chn_per_word = chn_per_word
+        self.name = 'pre_tr_ifmap_rd_noc'
+
+        #self.stat_type = 'show'
+        #self.raw_stats = {'noc_multicast' : 0}
+
+        self.rd_chns = rd_chns
+        self.output_chn = output_chn
+
+    def configure(self, arr_x):
+        self.arr_x = arr_x
+
+        self.num_iterations = 16
+        self.num_tiles = 4
+
+        self.iteration = 0
+        self.curr_tile = 0
+
+    def tick(self):
+        valid = True
+
+        for x in range(self.arr_x):
+            valid = valid and self.rd_chns[self.curr_tile][x].valid()
+
+        if valid:
+            target_chn = self.output_chn
+
+            if target_chn.vacancy():
+                data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(self.arr_x) ]
+                #print("pre tr ifmap rd noc -- pushing from rd_chn ", self.curr_tile, data)
+                target_chn.push(data)
+                #self.raw_stats['noc_multicast'] += len(data)
+
+                self.curr_tile += 1
+                if self.curr_tile == self.num_tiles:
+                    self.curr_tile = 0
+                    self.iteration += 1
+                if self.iteration == self.num_iterations:
+                    self.iteration = 0
+
+class PreTrWeightsWrNoC(Module):
+    def instantiate(self, rd_chn, wr_chns, chn_per_word):
+        self.chn_per_word = chn_per_word
+        self.name = 'pre_tr_weights_wr_noc'
+
+        #self.stat_type = 'show'
+        #self.raw_stats = {'noc_multicast' : 0}
+
+        self.rd_chn = rd_chn
+        self.wr_chns = wr_chns
+
+    def configure(self, arr_x):
+        self.arr_x = arr_x
+
+        self.curr_filter = 0
+        self.iteration = 0
+
+        self.num_filters = 8
+        self.num_iterations = 9
+
+    def tick(self):
+
+        if self.rd_chn.valid():
+
+            vacancy = True
+            for x in range(self.arr_x):
+                    vacancy = vacancy and self.wr_chns[self.curr_filter][x].vacancy()
+
+            if vacancy:
+
+                data = self.rd_chn.pop()
+                for x in range(self.arr_x):
+                    self.wr_chns[self.curr_filter][x].push(data[x])
+                #self.raw_stats['noc_multicast'] += len(data)
+
+                self.curr_filter += 1
+                if self.curr_filter == self.num_filters:
+                    self.curr_filter = 0
+                    self.iteration += 1
+                if self.iteration == self.num_iterations:
+                    self.iteration = 0
+
+class PreTrWeightsRdNoC(Module):
+    def instantiate(self, rd_chns, output_chn, chn_per_word):
+        self.chn_per_word = chn_per_word
+        self.name = 'pre_tr_weights_rd_noc'
+
+        #self.stat_type = 'show'
+        #self.raw_stats = {'noc_multicast' : 0}
+
+        self.rd_chns = rd_chns
+        self.output_chn = output_chn
+
+    def configure(self, arr_x):
+        self.arr_x = arr_x
+
+        self.curr_filter = 0
+        self.iteration = 0
+
+        self.num_filters = 8
+        self.num_iterations = 16
+
+    def tick(self):
+        valid = True
+
+        for x in range(self.arr_x):
+            valid = valid and self.rd_chns[self.curr_filter][x].valid()
+
+        if valid:
+            target_chn = self.output_chn
+
+            if target_chn.vacancy():
+                data = [ self.rd_chns[self.curr_filter][x].pop() for x in range(self.arr_x) ]
+                #print("pre tr weights rd noc -- pushing from rd_chn ", self.curr_tile, data)
+                target_chn.push(data)
+                #self.raw_stats['noc_multicast'] += len(data)
+
+                self.curr_filter += 1
+                if self.curr_filter == self.num_filters:
+                    self.curr_filter = 0
+                    self.iteration += 1
+                if self.iteration == self.num_iterations:
+                    self.iteration = 0
 
 class PostTrWrNoC(Module):
     def instantiate(self, rd_chns, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'post_tr_wr_noc'
-        
+
         #self.stat_type = 'show'
         #self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chns = rd_chns
         self.wr_chns = wr_chns
 
-    def configure(self, arr_x, arr_y):
+    def configure(self, arr_x):
         self.arr_x = arr_x
-        self.arr_y = arr_y
-        
+
         self.num_tiles = 4
         self.curr_tile = 0
-        
+
         self.iteration = 0
         self.num_iterations = 16 # 4x4 ofmap in
 
     def tick(self):
-        
+
         valid = True
         for x in range(self.arr_x):
             valid = valid and self.rd_chns[x].valid()
             #print("post tr wr noc -- rd chan %d valid" % x)
 
         if valid:
-            
+
             vacancy = True
             for x in range(self.arr_x):
                     vacancy = vacancy and self.wr_chns[self.curr_tile][x].vacancy()
-            
+
             if vacancy:
-                
+
                 for x in range(self.arr_x):
                     data = self.rd_chns[x].pop()
                     self.wr_chns[self.curr_tile][x].push(data)
@@ -185,12 +352,12 @@ class PostTrWrNoC(Module):
                     self.iteration += 1
                 if self.iteration == self.num_iterations:
                     self.iteration = 0
-                    
+
 class PostTrRdNoC(Module):
     def instantiate(self, rd_chns, output_chn, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'post_tr_rd_noc'
-        
+
         #self.stat_type = 'show'
         #self.raw_stats = {'noc_multicast' : 0}
 
@@ -198,9 +365,9 @@ class PostTrRdNoC(Module):
         self.output_chn = output_chn
 
     def configure(self):
-        
+
         self.num_iterations = 4
-        
+
         self.ofmap_sets = 2
         self.num_tiles = 4
 
@@ -209,7 +376,6 @@ class PostTrRdNoC(Module):
         self.curr_tile = 0
 
     def tick(self):
-        # Check if psum available for write-back
         valid = True
         xmin = self.curr_set*self.chn_per_word
         xmax = xmin + self.chn_per_word
@@ -218,7 +384,7 @@ class PostTrRdNoC(Module):
 
         if valid:
             target_chn = self.output_chn
-            
+
             if target_chn.vacancy():
                 data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(xmin, xmax) ]
                 print("post tr rd noc -- pushing from rd_chn ", self.curr_tile, data)
@@ -239,7 +405,7 @@ class PSumRdNoC(Module):
     def instantiate(self, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'psum_rd_noc'
-        
+
         #self.stat_type = 'show'
         #self.raw_stats = {'noc_multicast' : 0}
 
@@ -248,7 +414,7 @@ class PSumRdNoC(Module):
 
         #self.psum_sets = 0
         #self.curr_set = 0
-        
+
     def configure(self, arr_x):
         self.arr_x = arr_x
 
@@ -256,7 +422,7 @@ class PSumRdNoC(Module):
     def tick(self):
         # Feed psums to the PE array from the GLB
         #if self.rd_chn.valid():
-        
+
         # Dispatch ZERO if space is available and not at edge
         #xmin = self.curr_set*self.chn_per_word
         #xmax = xmin + self.chn_per_word
@@ -274,7 +440,7 @@ class PSumWrNoC(Module):
     def instantiate(self, rd_chns, output_chn, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'psum_wr_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
@@ -311,7 +477,7 @@ class PSumWrNoC(Module):
         if valid:
             target_chn = self.output_chn
             print ("noc has valid psum data")
-            
+
             if target_chn.vacancy():
                 print ("psum_to_glb: iteration, psum_idx, xmin, xmax: ", self.iteration, self.tile_idx, xmin, xmax)
                 data = [ self.rd_chns[x].pop() for x in range(xmin, xmax) ]
