@@ -53,19 +53,19 @@ class IFMapGLB(Module):
                 self.raw_stats['wr'] += len(data)
                 # print "ifmap_glb wr"
                 # Write ifmap to glb
-                addr = self.fmap_sets*self.fmap_idx + self.curr_set + self.curr_tile*self.fmap_per_iteration
+                addr = self.fmap_sets*self.curr_tile + self.curr_set + self.fmap_idx*self.num_tiles
                 print ("ifmap_to_glb: ", self.curr_tile, self.fmap_idx, addr)
                 self.curr_set += 1
                 self.sram.request(WR, addr, data)
                 if self.curr_set == self.fmap_sets:
                     self.curr_set = 0
-                    self.fmap_idx += 1
-                if self.fmap_idx == self.fmap_per_iteration:
-                    # Done initializing ifmaps and psums
-                    # self.sram.dump()
-                    self.fmap_idx = 0
                     self.curr_tile += 1
                 if self.curr_tile == self.num_tiles:
+                    # Done initializing ifmaps and psums
+                    # self.sram.dump()
+                    self.curr_tile = 0
+                    self.fmap_idx += 1
+                if self.fmap_idx == self.fmap_per_iteration:
                     self.wr_done = True
         else:
             if self.rd_chn.vacancy(1) and self.addr < self.glb_depth:
