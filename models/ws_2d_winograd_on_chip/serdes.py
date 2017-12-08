@@ -39,125 +39,138 @@ class InputSerializer(Module):
 
         self.ifmap_psum_done = False
         self.pass_done.wr(False)
+        self.send_ifmap = True # used to interleave sending weights and ifmaps to chip
 
     def tick(self):
         if self.pass_done.rd():
             return
 
-        in_sets = self.arr_y//self.chn_per_word
-        out_sets = self.arr_x//self.chn_per_word
+#        in_sets = self.arr_y//self.chn_per_word
+#        out_sets = self.arr_x//self.chn_per_word
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
         num_iteration = self.filter_size[0]*self.filter_size[1]
 
-        if not self.ifmap_psum_done:
-            if self.arch_input_chn.vacancy():
-                # print "input append"
-
+        if self.arch_input_chn.vacancy() and not self.pass_done.rd():
+            if not self.bias_wr_done:
+                kmin = self.bias_idx*self.chn_per_word
+                kmax = kmin + self.chn_per_word
+                data = np.array([self.biases[k] for k in range(kmin,kmax)])
+                self.bias_idx += 1
+                print ("input ser kmin,kmax,biases: ",kmin,kmax,data)                
+            elif (not self.fmap_wr_done) and self.send_ifmap: # send ifmap
+                # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]
                 y = self.fmap_idx // self.image_size[0]
-
-                if self.curr_set < in_sets:
-                    cmin = self.curr_set*self.chn_per_word
-                    cmax = cmin + self.chn_per_word
-                    # Write ifmap to glb
-                    data = np.array([ self.ifmap[x, y, c] for c in range(cmin, cmax) ])
-                else:
-                    cmin = (self.curr_set - in_sets)*self.chn_per_word
-                    cmax = cmin + self.chn_per_word
-                    # Write bias to glb
-                    data = np.array([ self.bias[c] for c in range(cmin, cmax) ])
-                self.arch_input_chn.push(data)
-                self.curr_set += 1
-
-                if self.curr_set == (in_sets+out_sets):
-                    self.curr_set = 0
-                    self.fmap_idx += 1
-                if self.fmap_idx == fmap_per_iteration:
-                    self.fmap_idx = 0
-                    self.ifmap_psum_done = True
-                    # print "---- Wrote inputs and biases ----"
-        else:
-            f_x = self.iteration % self.filter_size[0]
-            f_y = self.iteration // self.filter_size[0]
-
-            # Push filters to PE columns. (PE is responsible for pop)
-            if self.arch_input_chn.vacancy() and self.iteration < num_iteration:
-                cmin = self.curr_set*self.chn_per_word
+                cmin = self.curr_set*self.chn_per_word # 0
+                cmax = cmin + self.chn_per_word # 4
+                data = np.array([ self.ifmap[x, y, c] for c in range(cmin, cmax) ])
+                self.fmap_idx += 1
+                print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
+                self.send_ifmap = False
+            else: # send weight
+                # send 4 elements of weights (twice in succession)
+                x = self.weight_idx % self.filter_size[0]
+                y = self.weight_idx // self.filter_size[1]
+                cmin = 0
                 cmax = cmin + self.chn_per_word
-                data = np.array([self.weights[f_x, f_y, c, self.curr_filter] \
-                        for c in range(cmin, cmax) ])
-
-                self.arch_input_chn.push(data)
-                self.curr_set += 1
-                if self.curr_set == in_sets:
-                    self.curr_set = 0
-                    self.curr_filter += 1
-                if self.curr_filter == self.arr_x:
-                    self.curr_filter = 0
-                    # print "---- Wrote weights iteration: %d ----" % self.iteration
-                    self.iteration += 1
-                if self.iteration == num_iteration:
-                    # print "---- Wrote all weights ----"
-                    self.pass_done.wr(True)
+                data = np.array([self.weights[x, y, c, self.curr_filter] for c in range(cmin, cmax) ])
+                self.curr_filter += 1
+                if (not self.fmap_wr_done):
+                    self.send_ifmap = True
+                print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
+            self.arch_input_chn.push(data)  
+            if self.fmap_idx == fmap_per_iteration:
+                self.fmap_wr_done = True
+                self.fmap_idx = 0
+            if self.curr_filter == self.arr_x:
+                self.weight_idx += 1
+                self.curr_filter = 0
+            if self.weight_idx == weights_per_filter:
+                self.weight_wr_done = True
+                self.pass_done.wr(True)
+            if self.bias_idx == self.bias_sets: #2
+                self.bias_wr_done = True
 
 
 class InputDeserializer(Module):
-    def instantiate(self, arch_input_chn, ifmap_chn, weights_chn, psum_chn,
+    def instantiate(self, arch_input_chn, ifmap_chn, weights_chn, bias_chn, # TODO CONNECT BIAS NOT PSUM CHN
             arr_x, arr_y, chn_per_word):
         self.chn_per_word = chn_per_word
         self.arr_x = arr_x
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0}
+        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0, 'dram_to_post_tr' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn
         self.weights_chn = weights_chn
-        self.psum_chn = psum_chn
+        self.bias_chn = bias_chn
 
         self.image_size = (0, 0)
 
         self.fmap_idx = 0
         self.curr_set = 0
 
-    def configure(self, image_size):
+    def configure(self, image_size, filter_size):
         self.image_size = image_size
+        self.filter_size = filter_size
 
         self.fmap_idx = 0
+        self.fmap_tile = 0
+        self.num_tiles = 4
         self.curr_set = 0
+        self.fmap_wr_done = False
+        self.weight_wr_done = False
+        self.bias_wr_done = False
+        self.curr_filter = 0
+        self.weight_idx = 0
+        self.bias_idx = 0
+        self.send_ifmap = True
 
     def tick(self):
-        in_sets = self.arr_y//self.chn_per_word
-        out_sets = self.arr_x//self.chn_per_word
+        in_sets = self.arr_y//self.chn_per_word # 1
+        out_sets = self.arr_x//self.chn_per_word # 2
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
-
-        if self.fmap_idx < fmap_per_iteration:
-            if self.curr_set < in_sets:
-                target_chn = self.ifmap_chn
-                target_str = 'ifmap'
-            else:
-                target_chn = self.psum_chn
-                target_str = 'psum'
+        weights_per_filter = self.filter_size[0]*self.filter_size[1]
+ 
+        if not self.bias_wr_done:
+            target_chn = self.bias_chn
+            target_str = "bias"
+        elif (not self.fmap_wr_done) and self.send_ifmap:
+            target_chn = self.ifmap_chn
+            target_str = 'ifmap'
         else:
             target_chn = self.weights_chn
             target_str = 'weights'
 
         if self.arch_input_chn.valid():
             if target_chn.vacancy():
-                # print "des to ", target_str
                 data = [e for e in self.arch_input_chn.pop()]
+                print ("des to ", target_str, data)
+                target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
-                if (target_str == 'ifmap') or (target_str == 'psum'):
+                if target_str == 'ifmap':
                     self.raw_stats['dram_to_glb_acc'] += len(data)
+                    self.fmap_idx += 1
                 if target_str == 'weights':
                     self.raw_stats['dram_to_pe_acc'] += len(data)
-                target_chn.push(data)
-                self.curr_set += 1
-                if self.fmap_idx < fmap_per_iteration:
-                    if self.curr_set == (in_sets+out_sets):
-                        self.curr_set = 0
-                        self.fmap_idx += 1
+                    self.curr_filter += 1
+                    if (not self.fmap_wr_done):
+                        self.send_ifmap == True
+                if target_str == 'bias':
+                    self.raw_stats['dram_to_post_tr'] += len(data)
+                    self.bias_idx+=1
+                if self.bias_idx == 2:
+                    self.bias_wr_done = True
+                if self.fmap_idx == fmap_per_iteration:
+                    self.fmap_wr_done = True
+                    self.fmap_idx = 0       
+                if self.curr_filter == self.arr_x:
+                    self.weight_idx += 1
+                    self.curr_filter = 0
+                if self.weight_idx == weights_per_filter:
+                    self.weight_wr_done = True
 
 class OutputSerializer(Module):
     def instantiate(self, arch_output_chn, psum_chn):
