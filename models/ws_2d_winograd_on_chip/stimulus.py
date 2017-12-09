@@ -93,7 +93,7 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
             V[:,:,:,2*i+j] = v
             M[:,:,:,2*i+j] = m
     print ("U stimulus: ", U)
-    print ("V stimulus: ", V)
+    print ("V stimulus: ", V//128)
     return y,U,V,M
 
 

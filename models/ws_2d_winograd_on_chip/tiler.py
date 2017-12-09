@@ -15,7 +15,7 @@ class IFMapTiler(Module):
     def configure(self, arr_x):
         self.tile_fmap_idx = [0, 0, 0, 0] # fmap idx for each of the four tiles
         self.tile_done = [False, False, False, False]
-        # self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
+        self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
 
         self.arr_x = arr_x
 
@@ -28,31 +28,26 @@ class IFMapTiler(Module):
         # nonzero elements in the padded 4x4 ifmap
 
         self.tile_chn_list = [[0],
-                            [0, 1],
-                            [0, 1],
-                            [1],
                             [0, 2],
-                            [0, 1, 2, 3],
-                            [0, 1, 2, 3],
-                            [1, 3],
                             [0, 2],
-                            [0, 1, 2, 3],
-                            [0, 1, 2, 3],
-                            [1, 3],
                             [2],
+                            [0, 1],
+                            [0, 1, 2, 3],
+                            [0, 1, 2, 3],
                             [2, 3],
+                            [0, 1],
+                            [0, 1, 2, 3],
+                            [0, 1, 2, 3],
                             [2, 3],
+                            [1],
+                            [1, 3],
+                            [1, 3],
                             [3]]
 
 
     def tick(self):
 
-        self.tile_done = [ self.tile_fmap_idx[t] >= 16 for t in range(len(self.tile_fmap_idx)) ]
-
-        #sending_zero_to_tile = [(self.curr_tile == 0) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] % 4) == 0)),
-        #                        (self.curr_tile == 1) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] % 3) == 0)),
-        #                        (self.curr_tile == 2) and ((self.tile_fmap_idx[2] > 11) or ((self.tile_fmap_idx[2] % 4) == 0)),
-        #                        (self.curr_tile == 3) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] % 3) == 0))]
+        self.tile_done = [ self.tile_fmap_idx[t] >= self.num_tile_elem for t in range(len(self.tile_fmap_idx)) ]
 
         will_pop_ifmap_value = True
         print ("tile fmap idx -- ", self.tile_fmap_idx)
@@ -60,8 +55,8 @@ class IFMapTiler(Module):
         for tile in range(self.num_tiles):
 
             sending_zero_to_tile = [(tile == 0) and (not self.tile_done[0]) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] > 0) and ((self.tile_fmap_idx[0] % 4) == 0))),
-                                (tile == 1) and (not self.tile_done[1]) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] > 0) and (((self.tile_fmap_idx[1]+1) % 4) == 0))),
-                                (tile == 2) and (not self.tile_done[2]) and ((self.tile_fmap_idx[2] > 11) or ((self.tile_fmap_idx[2] >= 0) and ((self.tile_fmap_idx[2] % 4) == 0))),
+                                (tile == 1) and (not self.tile_done[1]) and ((self.tile_fmap_idx[1] > 11) or ((self.tile_fmap_idx[1] >= 0) and ((self.tile_fmap_idx[1] % 4) == 0))),
+                                (tile == 2) and (not self.tile_done[2]) and ((self.tile_fmap_idx[2] < 4) or ((self.tile_fmap_idx[2] > 0) and (((self.tile_fmap_idx[2]+1) % 4) == 0))),
                                 (tile == 3) and (not self.tile_done[3]) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] > 0) and (((self.tile_fmap_idx[3]+1) % 4) == 0)))]
 
             will_pop_ifmap_value = will_pop_ifmap_value and (not sending_zero_to_tile[tile])
