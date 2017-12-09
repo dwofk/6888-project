@@ -5,6 +5,7 @@ from nnsim.channel import Channel
 from .pe import PE
 from .pre_transform_ifmap import PreTransformIFMap
 from .pre_transform_weight import PreTransformWeights
+from .tiler import IFMapTiler
 from .post_transform import PostTransform
 from .serdes import InputDeserializer, OutputSerializer
 from .glb import IFMapGLB, WeightsGLB, BiasGLB
@@ -169,8 +170,11 @@ class WSArch(Module):
         self.post_tr_wr_noc = PostTrWrNoC(self.pe_psum_chns[-1], self.post_tr_ofmap_in_chns, self.chn_per_word)
         self.post_tr_rd_noc = PostTrRdNoC(self.post_tr_ofmap_out_chns, self.psum_output_chn, self.chn_per_word)
 
+        # Instantiate tiler for ifmaps
+        self.ifmap_tiler = IFMapTiler(self.ifmap_wr_chn, self.pre_tr_ifmap_in_chns, self.chn_per_word)
+
         # Setup NoC for pre transform blocks
-        self.pre_tr_ifmap_wr_noc = PreTrIFMapWrNoC(self.ifmap_wr_chn, self.pre_tr_ifmap_in_chns, self.chn_per_word)
+        #self.pre_tr_ifmap_wr_noc = PreTrIFMapWrNoC(self.ifmap_wr_chn, self.pre_tr_ifmap_in_chns, self.chn_per_word)
         self.pre_tr_ifmap_rd_noc = PreTrIFMapRdNoC(self.pre_tr_ifmap_out_chns, self.ifmap_glb_wr_chn, self.chn_per_word)
         self.pre_tr_weights_wr_noc = PreTrWeightsWrNoC(self.weights_wr_chn, self.pre_tr_weights_in_chns, self.chn_per_word)
         self.pre_tr_weights_rd_noc = PreTrWeightsRdNoC(self.pre_tr_weights_out_chns, self.weights_glb_wr_chn, self.chn_per_word)
@@ -192,6 +196,8 @@ class WSArch(Module):
 
         self.post_tr_wr_noc.configure(self.post_tr_x)
         self.post_tr_rd_noc.configure()
+
+        self.ifmap_tiler.configure()
 
         self.pre_tr_ifmap_wr_noc.configure(self.pre_tr_ifmap_x)
         self.pre_tr_ifmap_rd_noc.configure(self.pre_tr_ifmap_x)

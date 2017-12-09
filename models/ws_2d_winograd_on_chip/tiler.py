@@ -14,7 +14,7 @@ class IFMapTiler(Module):
 
     def configure(self):
         self.tile_fmap_idx = [0 0 0 0] # fmap idx for each of the four tiles
-        self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
+        # self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
 
         self.num_tiles = 4
         self.popped_ifmap_idx = 0
@@ -39,34 +39,8 @@ class IFMapTiler(Module):
                             [2, 3],
                             [3]]
 
-        # self.elem0_tile_chns = [self.rd_chns[0]]
-        # self.elem1_tile_chns = [self.rd_chns[0], self.rd_chns[1]]
-        # self.elem2_tile_chns = [self.rd_chns[0], self.rd_chns[1]]
-        # self.elem3_tile_chns = [self.rd_chns[1]]
-        # self.elem4_tile_chns = [self.rd_chns[0], self.rd_chns[2]]
-        # self.elem5_tile_chns = [self.rd_chns[0], self.rd_chns[1], self.rd_chns[2], self.rd_chns[3]]
-        # self.elem6_tile_chns = [self.rd_chns[0], self.rd_chns[1], self.rd_chns[2], self.rd_chns[3]]
-        # self.elem7_tile_chns = [self.rd_chns[1], self.rd_chns[3]]
-        # self.elem8_tile_chns = [self.rd_chns[0], self.rd_chns[2]]
-        # self.elem9_tile_chns = [self.rd_chns[0], self.rd_chns[1], self.rd_chns[2], self.rd_chns[3]]
-        # self.elem10_tile_chns = [self.rd_chns[0], self.rd_chns[1], self.rd_chns[2], self.rd_chns[3]]
-        # self.elem11_tile_chns = [self.rd_chns[1], self.rd_chns[3]]
-        # self.elem12_tile_chns = [self.rd_chns[2]]
-        # self.elem13_tile_chns = [self.rd_chns[2], self.rd_chns[3]]
-        # self.elem14_tile_chns = [self.rd_chns[2], self.rd_chns[3]]
-        # self.elem15_tile_chns = [self.rd_chns[3]]
-
-        #self.tile0_elem = [0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9]
 
     def tick(self):
-
-        # list of four bools indicating whether a zero will be sent on
-        # this tick as part of a particular tile
-        #sending_zero_to_tile = [False, False, False, False]
-
-        #if self.tile_elements[self.tile_fmap_idx[tile]] == 0:
-            # push zero
-
 
         sending_zero_to_tile = [(self.curr_tile == 0) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] % 4) == 0)),
                                 (self.curr_tile == 1) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] % 3) == 0)),
@@ -85,7 +59,6 @@ class IFMapTiler(Module):
                     self.rd_chns[tile][x].push(0)
                     self.tile_fmap_idx[tile] = self.tile_fmap_idx[tile] + 1
 
-
         if will_pop_ifmap_value and self.wr_chn.valid():
 
             vacancy = True
@@ -94,10 +67,11 @@ class IFMapTiler(Module):
                     vacancy = vacancy and self.rd_chns[tile_chn][x].vacancy()
 
             if vacancy:
-                data = self.rd_chn.pop()
-                self.popped_ifmap_idx += 1
+                data = self.wr_chn.pop()
 
                 for tile_chn in tile_chn_list[self.popped_ifmap_idx]:
                     for x in range(self.arr_x):
                         self.rd_chns[tile_chn][x].push(data[x])
                         self.tile_fmap_idx[tile_chn] = self.tile_fmap_idx[tile_chn] + 1
+
+                self.popped_ifmap_idx += 1
