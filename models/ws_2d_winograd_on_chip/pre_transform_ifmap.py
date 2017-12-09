@@ -142,7 +142,6 @@ class PreTransformIFMap(Module):
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
-                print("post tr pushing y00: ", self.y00, self.bias)
             elif (self.iteration == 11): # get D_23
                 self.V[0][3] += d
                 self.V[1][3] -= d
@@ -150,7 +149,6 @@ class PreTransformIFMap(Module):
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
-                print("post tr pushing y01: ", self.y01, self.bias)
             elif (self.iteration == 12): # get D_30     
                 self.V[3][0] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
@@ -170,13 +168,11 @@ class PreTransformIFMap(Module):
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
-                print("post tr pushing y10: ", self.y10, self.bias)
             elif (self.iteration == 15): # get D_33
                 self.V[3][3] += d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
-                print("post tr pushing y11: ", self.y11, self.bias)
         elif self.iteration == 16 and self.ifmap_out_chn.vacancy():
             self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
             self.push_ctr += 1

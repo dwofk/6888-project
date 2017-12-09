@@ -62,7 +62,7 @@ def winograd_tile(x, W, b):
     for k in range(K):
         for c in range(C): # sum over input channels C
             M[:,:,k] += np.multiply(U[:,:,c,k],V[:,:,c])
-    print ("M type? :", M)
+    #print ("M type? :", M)
     M = M//(128*128) # right shift by 14 bits to "undo" bit shifts in preprocessing
     
                 
@@ -81,9 +81,9 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
     x = np.pad(x_nopadding,1,'constant') # x padded: 6x6x4
     x = x[:,:,1:5] # remove accidental padding that added extra channels
     y = np.zeros([x.shape[0]-W.shape[0]+1, x.shape[1]-W.shape[1]+1, W.shape[3]]).astype(np.int64)# y: 4x4x8
-    print ("x original: ", x_nopadding)
-    print ("x padded:", x)
-    print ("x padded shape:", x.shape)
+    #print ("x original: ", x_nopadding)
+    #print ("x padded:", x)
+    #print ("x padded shape:", x.shape)
     for i in range(2):
         for j in range(2):
             [y[2*i:2*i+2,2*j:2*j+2,:],u,v,m] = winograd_tile(x[2*i:2*i+4,2*j:2*j+4,:],W,b)
@@ -134,8 +134,10 @@ class Stimulus(Module):
         
         print ("reference: ", reference)
         print ("reference winograd: ", reference_winograd)
-        print ("ifmaps winograd: ", ifmaps_winograd)
-        print ("weights winograd: ", weights_winograd)
+        print ("ifmaps: ", ifmap)
+        print ("weights: ", weights)
+        #print ("ifmaps winograd: ", ifmaps_winograd)
+        #print ("weights winograd: ", weights_winograd)
 
         self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
         #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)
