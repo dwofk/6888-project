@@ -1,3 +1,5 @@
+import numpy as np
+
 from nnsim.module import Module, HWError
 from nnsim.reg import Reg
 from nnsim.channel import Channel

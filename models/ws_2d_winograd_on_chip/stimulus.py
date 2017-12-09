@@ -112,7 +112,7 @@ class Stimulus(Module):
         self.serializer = InputSerializer(self.input_chn, self.arr_x,
             self.arr_y, self.chn_per_word)
         self.deserializer = OutputDeserializer(self.output_chn, self.arr_x,
-            self.arr_y, self.chn_per_word, self.finish_signal_chn)
+            self.arr_y, self.chn_per_word)
 
     def configure(self, image_size, filter_size, in_chn, out_chn):
         # Test data
@@ -139,7 +139,7 @@ class Stimulus(Module):
 
         self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
         #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)
-        self.deserializer.configure(ofmap, reference_winograd, image_size, bias)
+        self.deserializer.configure(ofmap, reference_winograd, image_size)
         #self.deserializer.configure(ofmap, ofmap_winograd.astype(np.int64), image_size, bias)
         
         #self.serializer.configure(ifmap, weights, bias, image_size, filter_size)

@@ -28,6 +28,8 @@ class InputSerializer(Module):
         self.curr_filter = 0
         self.iteration = 0
         self.fmap_idx = 0
+        self.bias_idx = 0
+        self.weight_idx = 0
 
     def configure(self, ifmap, weights, bias, image_size, filter_size):
         self.ifmap = ifmap
@@ -37,9 +39,13 @@ class InputSerializer(Module):
         self.image_size = image_size
         self.filter_size = filter_size
 
-        self.ifmap_psum_done = False
+        self.bias_wr_done = False
+        self.fmap_wr_done = False
+        self.weight_wr_done = False
         self.pass_done.wr(False)
         self.send_ifmap = True # used to interleave sending weights and ifmaps to chip
+        
+        self.bias_sets = 2
 
     def tick(self):
         if self.pass_done.rd():
@@ -49,14 +55,15 @@ class InputSerializer(Module):
 #        out_sets = self.arr_x//self.chn_per_word
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
         num_iteration = self.filter_size[0]*self.filter_size[1]
+        weights_per_filter = self.filter_size[0]*self.filter_size[1]
 
         if self.arch_input_chn.vacancy() and not self.pass_done.rd():
             if not self.bias_wr_done:
                 kmin = self.bias_idx*self.chn_per_word
                 kmax = kmin + self.chn_per_word
-                data = np.array([self.biases[k] for k in range(kmin,kmax)])
+                data = np.array([self.bias[k] for k in range(kmin,kmax)])
                 self.bias_idx += 1
-                print ("input ser kmin,kmax,biases: ",kmin,kmax,data)                
+                print ("input ser kmin,kmax,bias: ",kmin,kmax,data)                
             elif (not self.fmap_wr_done) and self.send_ifmap: # send ifmap
                 # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]

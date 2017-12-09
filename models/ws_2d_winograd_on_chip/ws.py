@@ -197,9 +197,9 @@ class WSArch(Module):
         self.post_tr_wr_noc.configure(self.post_tr_x)
         self.post_tr_rd_noc.configure()
 
-        self.ifmap_tiler.configure()
+        self.ifmap_tiler.configure(self.pre_tr_ifmap_x)
 
-        self.pre_tr_ifmap_wr_noc.configure(self.pre_tr_ifmap_x)
+        #self.pre_tr_ifmap_wr_noc.configure(self.pre_tr_ifmap_x)
         self.pre_tr_ifmap_rd_noc.configure(self.pre_tr_ifmap_x)
         self.pre_tr_weights_wr_noc.configure(self.pre_tr_weights_x)
         self.pre_tr_weights_rd_noc.configure(self.pre_tr_weights_x)

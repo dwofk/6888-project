@@ -12,12 +12,16 @@ class IFMapTiler(Module):
 
         self.name = "ifmap_tiler"
 
-    def configure(self):
-        self.tile_fmap_idx = [0 0 0 0] # fmap idx for each of the four tiles
+    def configure(self, arr_x):
+        self.tile_fmap_idx = [0, 0, 0, 0] # fmap idx for each of the four tiles
         # self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
 
-        self.num_tiles = 4
+        self.arr_x = arr_x
+        
+        self.curr_tile = 0
         self.popped_ifmap_idx = 0
+        
+        self.num_tiles = 4
 
         # list appropriate tile chns for each of the 16
         # nonzero elements in the padded 4x4 ifmap
@@ -62,14 +66,14 @@ class IFMapTiler(Module):
         if will_pop_ifmap_value and self.wr_chn.valid():
 
             vacancy = True
-            for tile_chn in tile_chn_list[self.popped_ifmap_idx]:
+            for tile_chn in self.tile_chn_list[self.popped_ifmap_idx]:
                 for x in range(self.arr_x):
                     vacancy = vacancy and self.rd_chns[tile_chn][x].vacancy()
 
             if vacancy:
                 data = self.wr_chn.pop()
 
-                for tile_chn in tile_chn_list[self.popped_ifmap_idx]:
+                for tile_chn in self.tile_chn_list[self.popped_ifmap_idx]:
                     for x in range(self.arr_x):
                         self.rd_chns[tile_chn][x].push(data[x])
                         self.tile_fmap_idx[tile_chn] = self.tile_fmap_idx[tile_chn] + 1
