@@ -85,11 +85,13 @@ class IFMapTiler(Module):
 
             if vacancy:
                 data = self.wr_chn.pop()
+                print ("tiler pops data: ",data)
 
                 for tile_chn in self.tile_chn_list[self.popped_ifmap_idx]:
                     if not self.tile_done[tile_chn]:
                         for x in range(self.arr_x):
                             self.rd_chns[tile_chn][x].push(data[x])
+                            print ("tiler pushes - tile_chn, x, data: ",tile_chn, x, data[x])
                         self.tile_fmap_idx[tile_chn] = self.tile_fmap_idx[tile_chn] + 1
 
                 self.popped_ifmap_idx += 1

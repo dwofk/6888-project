@@ -64,8 +64,9 @@ class PreTransformIFMap(Module):
             return
         if self.ifmap_in_chn.valid() and self.ifmap_out_chn.vacancy():
             d = (self.ifmap_in_chn.pop())
-            if self.locy == 3:
-                print ("pre transform ifmap - locx, locy, data: ",self.locx,self.locy, d)
+            print ("pre transform ifmap pop - locx, locy, data: ",self.locx,self.locy,d)
+#            if self.locy == 3:
+#                print ("pre transform ifmap - locx, locy, data: ",self.locx,self.locy, d)
             if (self.iteration == 0):    # get D_00
                 self.V[0][0] += d
                 self.iteration += 1
