@@ -64,7 +64,8 @@ class PreTransformIFMap(Module):
             return
         if self.ifmap_in_chn.valid() and self.ifmap_out_chn.vacancy():
             d = (self.ifmap_in_chn.pop())
-            print ("pre transform ifmap - locx, locy, data: ",self.locx,self.locy, d)
+            if self.locy == 3:
+                print ("pre transform ifmap - locx, locy, data: ",self.locx,self.locy, d)
             if (self.iteration == 0):    # get D_00
                 self.V[0][0] += d
                 self.iteration += 1
@@ -140,6 +141,8 @@ class PreTransformIFMap(Module):
                 self.V[2][1] += d
                 self.V[2][2] += d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 11): # get D_23
@@ -147,11 +150,15 @@ class PreTransformIFMap(Module):
                 self.V[1][3] -= d
                 self.V[2][3] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 12): # get D_30     
                 self.V[3][0] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 13): # get D_31
@@ -159,6 +166,8 @@ class PreTransformIFMap(Module):
                 self.V[3][2] += d
                 self.V[3][3] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 14): # get D_32     
@@ -166,15 +175,21 @@ class PreTransformIFMap(Module):
                 self.V[3][1] -= d
                 self.V[3][2] -= d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 15): # get D_33
                 self.V[3][3] += d
                 self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+                if self.locy == 3:
+                    print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
         elif self.iteration == 16 and self.ifmap_out_chn.vacancy():
             self.ifmap_out_chn.push(self.V[self.push_ctr // 4][self.push_ctr % 4])
+            if self.locy == 3:
+                print ("pre transform ifmap - locx, locy, iteration, transformed ifmap: ", self.locx, self.locy, self.iteration, self.V[self.push_ctr // 4][self.push_ctr % 4])
             self.push_ctr += 1
             if self.push_ctr == 16: # all 16 transformed ifmap values have been pushed
                 self.transform_done.wr(True)
