@@ -159,12 +159,13 @@ class InputDeserializer(Module):
                 self.raw_stats['dram_rd'] += len(data)
                 if target_str == 'ifmap':
                     self.raw_stats['dram_to_glb_acc'] += len(data)
+                    self.send_ifmap = False
                     self.fmap_idx += 1
                 if target_str == 'weights':
                     self.raw_stats['dram_to_pe_acc'] += len(data)
                     self.curr_filter += 1
                     if (not self.fmap_wr_done):
-                        self.send_ifmap == True
+                        self.send_ifmap = True
                 if target_str == 'bias':
                     self.raw_stats['dram_to_post_tr'] += len(data)
                     self.bias_idx+=1

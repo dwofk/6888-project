@@ -136,6 +136,7 @@ class Stimulus(Module):
         print ("reference winograd: ", reference_winograd)
         print ("ifmaps: ", ifmap)
         print ("weights: ", weights)
+        print ("biases: ", bias)
         #print ("ifmaps winograd: ", ifmaps_winograd)
         #print ("weights winograd: ", weights_winograd)
 

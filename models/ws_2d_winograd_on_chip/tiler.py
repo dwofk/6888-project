@@ -52,6 +52,7 @@ class IFMapTiler(Module):
                                 (self.curr_tile == 3) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] % 3) == 0))]
 
         will_pop_ifmap_value = True
+        print ("tile fmap idx, sending zero to tile: ", self.tile_fmap_idx, sending_zero_to_tile)
         for tile in range(self.num_tiles):
             will_pop_ifmap_value = will_pop_ifmap_value and (not sending_zero_to_tile[tile])
             if sending_zero_to_tile[tile]:
@@ -60,7 +61,8 @@ class IFMapTiler(Module):
                 for x in range(self.arr_x):
                     vacancy = vacancy and self.rd_chns[tile][x].vacancy()
                 if vacancy:
-                    self.rd_chns[tile][x].push(0)
+                    for x in range(self.arr_x):
+                        self.rd_chns[tile][x].push(0)
                     self.tile_fmap_idx[tile] = self.tile_fmap_idx[tile] + 1
 
         if will_pop_ifmap_value and self.wr_chn.valid():
@@ -76,6 +78,6 @@ class IFMapTiler(Module):
                 for tile_chn in self.tile_chn_list[self.popped_ifmap_idx]:
                     for x in range(self.arr_x):
                         self.rd_chns[tile_chn][x].push(data[x])
-                        self.tile_fmap_idx[tile_chn] = self.tile_fmap_idx[tile_chn] + 1
+                    self.tile_fmap_idx[tile_chn] = self.tile_fmap_idx[tile_chn] + 1
 
                 self.popped_ifmap_idx += 1
