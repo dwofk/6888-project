@@ -13,6 +13,9 @@ class PreTransformWeights(Module):
         self.weight_out_chn = weight_out_chn
         self.transform_done = Reg(False)
         
+        self.stat_type = 'aggregate'
+        self.raw_stats = {'alu_comp' : 0, 'rf_rd' : 0, 'rf_wr' : 0}
+        
     def configure(self):
         self.iteration = 0
         self.push_ctr = 0
@@ -62,7 +65,7 @@ class PreTransformWeights(Module):
             return
         if self.weight_in_chn.valid() and self.weight_out_chn.vacancy():
             g = (self.weight_in_chn.pop())
-            print("pre tr weight: locx, locy, receive weight: ", self.locx, self.locy, g)
+            #print("pre tr weight: locx, locy, receive weight: ", self.locx, self.locy, g)
             if (self.iteration == 0):    # get G_00
                 self.U[0][0] += g
                 self.U[0][1] += g
@@ -74,8 +77,13 @@ class PreTransformWeights(Module):
                 self.U[2][1] += g
                 self.U[2][2] += g
                 self.U[0][0] = self.U[0][0]*128 # left shift by 7
+                self.raw_stats['alu_comp'] += 10 #9 adds, 1 shift
+                self.raw_stats['rf_rd'] += 9
+                self.raw_stats['rf_wr'] += 9
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U00
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_wr'] -= 1 # u00 sent immediately, not written back to rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 1):  # get G_01
@@ -85,6 +93,9 @@ class PreTransformWeights(Module):
                 self.U[1][2] -= g
                 self.U[2][1] += g
                 self.U[2][2] -= g
+                self.raw_stats['alu_comp'] += 6 
+                self.raw_stats['rf_rd'] += 6
+                self.raw_stats['rf_wr'] += 6
                 self.iteration += 1
             elif (self.iteration == 2):  # get G_02     
                 self.U[0][1] += g
@@ -99,8 +110,13 @@ class PreTransformWeights(Module):
                 self.U[0][1] = self.U[0][1]*64 # left shift by 6
                 self.U[0][2] = self.U[0][2]*64 # left shift by 6
                 self.U[0][3] = self.U[0][3]*128 # left shift by 7
+                self.raw_stats['alu_comp'] += 12 #9 adds/subt, 3 shift
+                self.raw_stats['rf_rd'] += 9
+                self.raw_stats['rf_wr'] += 9
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U01
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_wr'] -= 1 # u01 sent immediately, not written back to rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 3):  # get G_10
@@ -110,8 +126,13 @@ class PreTransformWeights(Module):
                 self.U[2][0] -= g
                 self.U[2][1] -= g
                 self.U[2][2] -= g
+                self.raw_stats['alu_comp'] += 6 
+                self.raw_stats['rf_rd'] += 6
+                self.raw_stats['rf_wr'] += 6
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U02
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_rd'] += 1 # read u02 from rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 4):  # get G_11    
@@ -119,8 +140,13 @@ class PreTransformWeights(Module):
                 self.U[1][2] -= g
                 self.U[2][1] -= g
                 self.U[2][2] += g
+                self.raw_stats['alu_comp'] += 4
+                self.raw_stats['rf_rd'] += 4
+                self.raw_stats['rf_wr'] += 4
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U03
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_rd'] += 1 # read u03 from rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 5):  # get G_12     
@@ -130,6 +156,9 @@ class PreTransformWeights(Module):
                 self.U[2][1] -= g
                 self.U[2][2] -= g
                 self.U[2][3] -= g
+                self.raw_stats['alu_comp'] += 6 
+                self.raw_stats['rf_rd'] += 6
+                self.raw_stats['rf_wr'] += 6
                 # no new completed weights this round
                 self.iteration += 1
             elif (self.iteration == 6):  # get G_20
@@ -145,8 +174,13 @@ class PreTransformWeights(Module):
                 self.U[1][0] = self.U[1][0]*64 # left shift 6
                 self.U[2][0] = self.U[2][0]*64 # left shift 6
                 self.U[3][0] = self.U[3][0]*128 # left shift 7
+                self.raw_stats['alu_comp'] += 12 # 9 add, 3 shift ops 
+                self.raw_stats['rf_rd'] += 9
+                self.raw_stats['rf_wr'] += 9
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U10
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_wr'] -= 1 # send u10 immediately, w/o writing to rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
             elif (self.iteration == 7):  # get G_21
@@ -156,6 +190,9 @@ class PreTransformWeights(Module):
                 self.U[2][2] -= g
                 self.U[3][1] += g
                 self.U[3][2] -= g
+                self.raw_stats['alu_comp'] += 6 # 9 add, 3 shift ops 
+                self.raw_stats['rf_rd'] += 6
+                self.raw_stats['rf_wr'] += 6
                 # no new completed weights this round
                 self.iteration += 1
             elif (self.iteration == 8):  # get G_22
@@ -177,13 +214,20 @@ class PreTransformWeights(Module):
                 self.U[3][1] = self.U[3][1]*64
                 self.U[3][2] = self.U[3][2]*64
                 self.U[3][3] = self.U[3][3]*128
+                self.raw_stats['alu_comp'] += 18 # 9 add, 9 shift ops 
+                self.raw_stats['rf_rd'] += 9
+                self.raw_stats['rf_wr'] += 9
                 self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4]) # send U11
-                print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+                self.raw_stats['rf_wr'] -= 1 # send u11 immediately w/o writing to rf
+                #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+                #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
                 self.push_ctr += 1
                 self.iteration += 1
         elif self.iteration == 9 and self.weight_out_chn.vacancy(): # finish pushing transformed weights
             self.weight_out_chn.push(self.U[self.push_ctr // 4][self.push_ctr % 4])
-            print ("pre transform weights - locx, locy, iteration, transformed weight: ", self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
+            self.raw_stats['rf_rd'] += 1 # read uXX from rf
+            #print ("pre transform weights - locx, locy, iteration, transformed weight: ", \
+            #       self.locx, self.locy, self.iteration, self.U[self.push_ctr // 4][self.push_ctr % 4])
             self.push_ctr += 1
             if self.push_ctr == 16: # all 16 transformed weight values have been pushed
                 self.transform_done.wr(True)
