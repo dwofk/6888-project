@@ -17,10 +17,10 @@ class IFMapTiler(Module):
         # self.num_tile_elem = 16 # tiles are 4x4 -- contain 16 elems
 
         self.arr_x = arr_x
-        
+
         self.curr_tile = 0
         self.popped_ifmap_idx = 0
-        
+
         self.num_tiles = 4
 
         # list appropriate tile chns for each of the 16
@@ -46,14 +46,21 @@ class IFMapTiler(Module):
 
     def tick(self):
 
-        sending_zero_to_tile = [(self.curr_tile == 0) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] % 4) == 0)),
-                                (self.curr_tile == 1) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] % 3) == 0)),
-                                (self.curr_tile == 2) and ((self.tile_fmap_idx[2] > 11) or ((self.tile_fmap_idx[2] % 4) == 0)),
-                                (self.curr_tile == 3) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] % 3) == 0))]
+        #sending_zero_to_tile = [(self.curr_tile == 0) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] % 4) == 0)),
+        #                        (self.curr_tile == 1) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] % 3) == 0)),
+        #                        (self.curr_tile == 2) and ((self.tile_fmap_idx[2] > 11) or ((self.tile_fmap_idx[2] % 4) == 0)),
+        #                        (self.curr_tile == 3) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] % 3) == 0))]
 
         will_pop_ifmap_value = True
-        print ("tile fmap idx, sending zero to tile: ", self.tile_fmap_idx, sending_zero_to_tile)
+        print ("tile fmap idx -- ", self.tile_fmap_idx)
+
         for tile in range(self.num_tiles):
+
+            sending_zero_to_tile = [(tile == 0) and ((self.tile_fmap_idx[0] < 4) or ((self.tile_fmap_idx[0] > 0) and ((self.tile_fmap_idx[0] % 4) == 0))),
+                                (tile == 1) and ((self.tile_fmap_idx[1] < 4) or ((self.tile_fmap_idx[1] > 0) and ((self.tile_fmap_idx[1] % 3) == 0))),
+                                (tile == 2) and ((self.tile_fmap_idx[2] > 11) or ((self.tile_fmap_idx[2] >= 0) and ((self.tile_fmap_idx[2] % 4) == 0))),
+                                (tile == 3) and ((self.tile_fmap_idx[3] > 11) or ((self.tile_fmap_idx[3] > 0) and ((self.tile_fmap_idx[3] % 3) == 0)))]
+
             will_pop_ifmap_value = will_pop_ifmap_value and (not sending_zero_to_tile[tile])
             if sending_zero_to_tile[tile]:
                 # check vacancy, push to tile, increment tile's tile_fmap_idx
