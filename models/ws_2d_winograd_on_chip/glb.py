@@ -113,5 +113,5 @@ class WeightsGLB(Module):
         if self.wr_chn.valid() and self.rd_chn.vacancy():
             data = self.wr_chn.pop()
             self.rd_chn.push(data)
-            self.raw_stats['weight_glb_rd'] += len(data)
-            self.raw_stats['weight_glb_wr'] += len(data)
+            #self.raw_stats['weight_glb_rd'] += len(data)
+            #self.raw_stats['weight_glb_wr'] += len(data)

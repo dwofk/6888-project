@@ -8,9 +8,9 @@ class IFMapGLB(Module):
         self.rd_chn = rd_chn
         self.chn_per_word = chn_per_word
         self.name = 'ifmap_glb'
-        
+
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0, 'glb_to_pe_acc': 0}
+        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'ifmap_glb_rd': 0, 'ifmap_glb_wr': 0}
 
 
         self.sram = SRAM(glb_depth, chn_per_word)
@@ -33,7 +33,7 @@ class IFMapGLB(Module):
         self.filter_size = filter_size
         self.fmap_sets = fmap_sets
         self.fmap_per_iteration = fmap_per_iteration
-        
+
         self.read_ctr = 0
 
     def tick(self):
@@ -47,7 +47,7 @@ class IFMapGLB(Module):
             # Write to GLB
             if self.wr_chn.valid():
                 data = self.wr_chn.pop()
-                self.raw_stats['wr'] += len(data)
+                self.raw_stats['ifmap_glb_wr'] += len(data)
                 # print "ifmap_glb wr"
                 # Write ifmap to glb
                 addr = self.fmap_sets*self.fmap_idx + self.curr_set
@@ -65,10 +65,10 @@ class IFMapGLB(Module):
         else:
             # Read from GLB and deal with SRAM latency
             if self.rd_chn.vacancy(1) and self.iteration < num_iteration:
-                
+
                 self.read_ctr += 1
                 #print("ifmap glb read ctr ", self.read_ctr)
-                
+
                 fmap_x = self.fmap_idx % self.image_size[0]
                 fmap_y = self.fmap_idx  // self.image_size[0]
                 ifmap_x, ifmap_y = (fmap_x + filter_x, fmap_y + filter_y)
@@ -99,8 +99,7 @@ class IFMapGLB(Module):
                         [e for e in self.sram.response()]
                 #print("ifmap rd glb", data, self.iteration)
                 self.rd_chn.push(data)
-                self.raw_stats['rd'] += len(data)
-                self.raw_stats['glb_to_pe_acc'] += len(data)
+                self.raw_stats['ifmap_glb_rd'] += len(data)
 
 class PSumGLB(Module):
     def instantiate(self, dram_wr_chn, noc_wr_chn, rd_chn, glb_depth, chn_per_word):
@@ -109,9 +108,9 @@ class PSumGLB(Module):
         self.rd_chn = rd_chn
         self.chn_per_word = chn_per_word
         self.name = 'psum_glb'
-        
+
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'rd': 0, 'wr': 0, 'glb_to_pe_acc': 0}
+        self.raw_stats = {'size' : (glb_depth, chn_per_word), 'psum_glb_rd': 0, 'psum_glb_wr': 0}
 
         self.sram = SRAM(glb_depth, chn_per_word, nports=2)
         self.last_read = Channel(3)
@@ -150,7 +149,7 @@ class PSumGLB(Module):
             # Write to GLB
             if self.dram_wr_chn.valid():
                 data = self.dram_wr_chn.pop()
-                self.raw_stats['wr'] += len(data)
+                self.raw_stats['psum_glb_wr'] += len(data)
                 # print "psum_glb wr"
                 # Write ifmap to glb
                 addr = self.fmap_sets*self.fmap_wr_idx + self.wr_set
@@ -188,15 +187,14 @@ class PSumGLB(Module):
                 data = [0]*self.chn_per_word if is_zero else \
                         [e for e in self.sram.response()]
                 self.rd_chn.push(data)
-                self.raw_stats['rd'] += len(data)
-                self.raw_stats['glb_to_pe_acc'] += len(data)
+                self.raw_stats['psum_glb_rd'] += len(data)
                 #print("psum rd glb: data", data)
 
             if self.noc_wr_chn.valid():
                 data = self.noc_wr_chn.pop()
                 #print("psum_to_glb: ", self.fmap_wr_idx, self.wr_set, data)
-                
-                self.raw_stats['wr'] += len(data)
+
+                self.raw_stats['psum_glb_wr'] += len(data)
                 addr = self.fmap_sets*self.fmap_wr_idx + self.wr_set
                 #print("noc psum wr glb", self.fmap_wr_idx, self.wr_set, data)
                 self.wr_set += 1
@@ -214,19 +212,14 @@ class WeightsGLB(Module):
         self.wr_chn = wr_chn
         self.rd_chn = rd_chn
         self.name = 'weight_glb'
-        
+
         self.stat_type = 'show'
-        self.raw_stats = {'size' : (0, 0), 'rd': 0, 'wr': 0}
-        
+        self.raw_stats = {'size' : (0, 0), 'weight_glb_rd': 0, 'weight_glb_wr': 0}
+
     def tick(self):
         if self.wr_chn.valid() and self.rd_chn.vacancy():
             data = self.wr_chn.pop()
-            self.raw_stats['wr'] += len(data)
+            #self.raw_stats['weight_glb_rd'] += len(data)
             self.rd_chn.push(data)
             #print("weight rd glb", data)
-            self.raw_stats['rd'] += len(data)
-
-
-
-
-
+            #self.raw_stats['weight_glb_wr'] += len(data)

@@ -107,7 +107,7 @@ class InputDeserializer(Module):
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0, 'dram_wr' : 0}
+        self.raw_stats = {'dram_rd' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn

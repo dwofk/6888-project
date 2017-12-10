@@ -4,7 +4,7 @@ class WeightsNoC(Module):
     def instantiate(self, rd_chn, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'weight_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
@@ -52,7 +52,7 @@ class IFMapNoC(Module):
         self.arr_x = arr_x
         self.chn_per_word = chn_per_word
         self.name = 'ifmap_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
@@ -63,13 +63,13 @@ class IFMapNoC(Module):
 
         self.curr_set = 0
         self.curr_filter = 0
-        
+
     def configure(self, ifmap_sets):
         self.ifmap_sets = ifmap_sets
 
         self.curr_set = 0
         self.curr_filter = 0
-        
+
     def tick(self):
         # Feed inputs to the PE array from the GLB
         if self.rd_chn.valid():
@@ -98,13 +98,13 @@ class PSumRdNoC(Module):
     def instantiate(self, rd_chn, wr_chns, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'psum_rd_noc'
-        
+
         self.stat_type = 'show'
         self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chn = rd_chn
         self.wr_chns = wr_chns
-        
+
         #print("wr chn len: ", wr_chns)
 
         self.psum_sets = 0
@@ -142,10 +142,9 @@ class PSumWrNoC(Module):
     def instantiate(self, rd_chns, glb_chn, output_chn, chn_per_word):
         self.chn_per_word = chn_per_word
         self.name = 'psum_wr_noc'
-        
-        self.stat_type = 'show'
-        self.raw_stats = {'noc_multicast' : 0, 'pe_to_glb_acc' : 0, 'pe_to_dram_acc' : 0}
 
+        self.stat_type = 'show'
+        self.raw_stats = {'noc_multicast' : 0}
         self.rd_chns = rd_chns
         self.glb_chn = glb_chn
         self.output_chn = output_chn
@@ -183,10 +182,10 @@ class PSumWrNoC(Module):
                 data = [ self.rd_chns[x].pop() for x in range(xmin, xmax) ]
                 # print("psum_to_glb: ", self.iteration, self.psum_idx, xmin, xmax, data)
                 self.raw_stats['noc_multicast'] += len(data)
-                if target_chn == self.output_chn:
-                    self.raw_stats['pe_to_dram_acc'] += len(data)
-                else: # to self.glb_chn
-                    self.raw_stats['pe_to_glb_acc'] += len(data)
+                #if target_chn == self.output_chn:
+                #    self.raw_stats['pe_to_dram_acc'] += len(data)
+                #else: # to self.glb_chn
+                #    self.raw_stats['pe_to_glb_acc'] += len(data)
                 target_chn.push(data)
 
                 self.curr_set += 1

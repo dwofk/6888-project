@@ -10,7 +10,7 @@ class InputSerializer(Module):
         self.arr_x = arr_x
         self.arr_y = arr_y
         self.chn_per_word = chn_per_word
-        
+
         self.arch_input_chn = arch_input_chn
 
         self.ifmap = None
@@ -148,10 +148,10 @@ class InputDeserializer(Module):
                 # print "des to ", target_str
                 data = [e for e in self.arch_input_chn.pop()]
                 self.raw_stats['dram_rd'] += len(data)
-                if (target_str == 'ifmap') or (target_str == 'psum'):
-                    self.raw_stats['dram_to_glb_acc'] += len(data)
-                if target_str == 'weights':
-                    self.raw_stats['dram_to_pe_acc'] += len(data)
+                #if (target_str == 'ifmap') or (target_str == 'psum'):
+                #    self.raw_stats['dram_to_glb_acc'] += len(data)
+                #if target_str == 'weights':
+                #    self.raw_stats['dram_to_pe_acc'] += len(data)
                 target_chn.push(data)
                 self.curr_set += 1
                 if self.fmap_idx < fmap_per_iteration:
@@ -163,7 +163,7 @@ class OutputSerializer(Module):
     def instantiate(self, arch_output_chn, psum_chn):
         self.arch_output_chn = arch_output_chn
         self.psum_chn = psum_chn
-        
+
         self.stat_type = 'aggregate'
         self.raw_stats = {'dram_wr' : 0}
 
@@ -194,7 +194,7 @@ class OutputDeserializer(Module):
 
         self.curr_set = 0
         self.fmap_idx = 0
-        
+
         self.pass_done = Reg(False)
 
     def configure(self, ofmap, reference, image_size):
@@ -241,4 +241,3 @@ class OutputDeserializer(Module):
                     print(self.reference)
                     print(self.ofmap-self.reference)
                     raise Finish("Validation Failed")
-

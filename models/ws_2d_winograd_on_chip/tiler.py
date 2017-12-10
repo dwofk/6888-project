@@ -10,7 +10,10 @@ class IFMapTiler(Module):
         self.rd_chns = rd_chns
         self.chn_per_word = chn_per_word
 
-        self.name = "ifmap_tiler"
+        self.name = 'ifmap_tiler'
+
+        self.stat_type = 'show'
+        self.raw_stats = {'noc_multicast' : 0}
 
     def configure(self, arr_x):
         self.tile_fmap_idx = [0, 0, 0, 0] # fmap idx for each of the four tiles
@@ -80,6 +83,7 @@ class IFMapTiler(Module):
 
             if vacancy:
                 data = self.wr_chn.pop()
+                self.raw_stats['noc_multicast'] += len(data)
                 #print ("tiler pops data: ",data)
 
                 for tile_chn in self.tile_chn_list[self.popped_ifmap_idx]:
