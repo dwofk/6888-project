@@ -96,6 +96,16 @@ class WSArchTB(Module):
         self.raw_stats['total_mem_acc'] = self.raw_stats['dram_mem_acc'] + \
                 self.raw_stats['glb_mem_acc'] + self.raw_stats['rf_mem_acc']
 
+        ### aggregate channel usage stats for NoC multicasts
+
+        noc_multicasts = 0
+
+        for tup in noc_multicast_list:
+            sub_module, key = tup[0], tup[1]
+            noc_multicasts += sub_module.raw_stats[key]
+
+        self.raw_stats['total_noc_multicasts'] = noc_multicasts
+
         ### scale memory access stats by energy factors to determine the energy stats
 
         self.raw_stats['dram_energy'] = self.raw_stats['dram_mem_acc'] * DRAM_ENERGY_FACTOR
