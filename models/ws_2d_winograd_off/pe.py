@@ -10,9 +10,9 @@ class PE(Module):
         # PE identifier (immutable)
         self.loc_x = loc_x
         self.loc_y = loc_y
-        
+
         self.stat_type = 'aggregate'
-        self.raw_stats = {'pe_mac' : 0, 'pe_to_pe_acc' : 0, 'rf_to_pe_acc' : 0, 'pe_to_dram_acc': 0}
+        self.raw_stats = {'pe_mac' : 0, 'pe_chn_pop' : 0, 'pe_chn_push' : 0, 'pe_rf_rd' : 0, 'pe_rf_wr' : 0}
 
         # IO channels
         self.ifmap_chn = ifmap_chn
@@ -29,11 +29,11 @@ class PE(Module):
 
     def configure(self, fmap_per_iteration, num_iteration):
         self.curr_tile = 0
-        
+
         #self.fmap_per_iteration = fmap_per_iteration
         self.num_tiles = 4
         self.num_iteration = num_iteration
-        
+
         #print("fmap per iteration:", fmap_per_iteration)
         #print("num iteration:", num_iteration)
 
@@ -46,22 +46,24 @@ class PE(Module):
             if self.psum_out_chn.vacancy():
                 in_psum = self.psum_in_chn.pop()
                 if self.loc_y != 0: # getting in psum from PE above
-                    self.raw_stats['pe_to_pe_acc'] += 1                   
+                    self.raw_stats['pe_chn_pop'] += 1
                 ifmap = self.ifmap_chn.pop()
                 weight = self.filter_chn.peek()
-                self.raw_stats['rf_to_pe_acc'] += 1    # TODO
+                self.raw_stats['pe_rf_rd'] += 1
                 self.psum_out_chn.push(in_psum+ifmap*weight)
-                if self.loc_y == 3: # self.arr_y
-                    self.raw_stats['pe_to_dram_acc'] += 1 
+                #if self.loc_y == 3: # self.arr_y
+                #    self.raw_stats['pe_to_dram_acc'] += 1
                 self.raw_stats['pe_mac'] += 1
+                self.raw_stats['pe_chn_push'] += 1
                 #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, \
                 #                                       self.iteration, self.fmap_idx))
-                #print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))     
+                #print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))
                 self.curr_tile += 1
                 if self.curr_tile == self.num_tiles:
                     self.curr_tile = 0
                     self.filter_chn.pop()
-                    self.raw_stats['rf_to_pe_acc'] -= 1
+                    self.raw_stats['pe_rf_rd'] -= 1 # weight pop -> not an rf read for first use
+                    self.raw_stats['pe_rf_wr'] += 1
                     self.iteration += 1
                 #if self.iteration == self.num_iteration:
                     #print("PE calculations for PE(%d, %d) should be done now!" % (self.loc_x, self.loc_y))
