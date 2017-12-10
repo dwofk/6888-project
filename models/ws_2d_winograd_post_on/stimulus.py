@@ -54,7 +54,7 @@ def winograd_tile(x, W, b):
         V[:,:,c] = np.dot(B_T,np.dot(d,B)) 
     # Convert to integers for on chip processing, LOSE ACCURACY
     U = 128*U; # left shift by 7 bits to avoid precision loss when convert float to int
-    V = 128*V;
+    #V = 128*V;
     U = U.astype(np.int64)
     V = V.astype(np.int64)
             
@@ -63,7 +63,7 @@ def winograd_tile(x, W, b):
         for c in range(C): # sum over input channels C
             M[:,:,k] += np.multiply(U[:,:,c,k],V[:,:,c])
     print ("M type? :", M)
-    M = M//(128*128) # right shift by 14 bits to "undo" bit shifts in preprocessing
+    M = M//(128) # right shift by 14 bits to "undo" bit shifts in preprocessing
     
                 
     # Revert Winograd transforms

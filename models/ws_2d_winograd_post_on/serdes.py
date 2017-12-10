@@ -88,7 +88,7 @@ class InputSerializer(Module):
                 V[:,:,c,t] = np.dot(B_T,np.dot(d,B)) 
         # Convert to integers for on chip processing, LOSE ACCURACY -> bit shift
         U = 128*U; # left shift by 7 bits to avoid precision loss when convert float to int
-        V = 128*V;
+        #V = 128*V;
         self.weights = U.astype(np.int64) # transformed weights
         self.ifmap = V.astype(np.int64) # transformed ifmap
         print ("U ser: ", self.weights)
@@ -110,7 +110,7 @@ class InputSerializer(Module):
                 kmax = kmin + self.chn_per_word
                 data = np.array([self.biases[k] for k in range(kmin,kmax)])
                 self.bias_idx += 1
-                print ("input ser kmin,kmax,biases: ",kmin,kmax,data)                
+                #print ("input ser kmin,kmax,biases: ",kmin,kmax,data)                
             elif not self.fmap_wr_done: # send ifmap
                 # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]
@@ -119,7 +119,7 @@ class InputSerializer(Module):
                 cmax = cmin + self.chn_per_word # 4
                 data = np.array([ self.ifmap[x, y, c, self.fmap_tile] for c in range(cmin, cmax) ])
                 self.fmap_tile += 1
-                print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
+                #print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
             else: # send weight
                 # send 4 elements of weights (twice in succession)
                 x = self.weight_idx % self.filter_size[0]
@@ -128,7 +128,7 @@ class InputSerializer(Module):
                 cmax = cmin + self.chn_per_word
                 data = np.array([self.weights[x, y, c, self.curr_filter] for c in range(cmin, cmax) ])
                 self.curr_filter += 1
-                print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
+                #print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
             self.arch_input_chn.push(data)  
             if self.fmap_tile == self.num_tiles:
                 self.fmap_tile = 0
@@ -154,7 +154,7 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0, 'dram_to_post_tr' : 0}
+        self.raw_stats = {'dram_rd' : 0, 'dram_wr' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn
@@ -201,17 +201,14 @@ class InputDeserializer(Module): # TODO WHERE WE LEFT OFF
         if self.arch_input_chn.valid():
             if target_chn.vacancy():
                 data = [e for e in self.arch_input_chn.pop()]
-                print ("des to ", target_str, data)
+                #print ("des to ", target_str, data)
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
                 if target_str == 'ifmap':
-                    self.raw_stats['dram_to_glb_acc'] += len(data)
                     self.fmap_tile += 1
                 if target_str == 'weights':
-                    self.raw_stats['dram_to_pe_acc'] += len(data)
                     self.curr_filter += 1
                 if target_str == 'bias':
-                    self.raw_stats['dram_to_post_tr'] += len(data)
                     self.bias_idx+=1
                 if self.bias_idx == 2:
                     self.bias_wr_done = True

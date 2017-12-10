@@ -97,8 +97,8 @@ class BiasGLB(Module):
         if self.wr_chn.valid() and self.rd_chn.vacancy():
             data = self.wr_chn.pop()
             self.rd_chn.push(data)
-            self.raw_stats['bias_glb_rd'] += len(data)
-            self.raw_stats['bias_glb_wr'] += len(data)
+            #self.raw_stats['bias_glb_rd'] += len(data)
+            #self.raw_stats['bias_glb_wr'] += len(data)
 
 class WeightsGLB(Module):
     def instantiate(self, wr_chn, rd_chn):

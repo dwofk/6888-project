@@ -51,7 +51,7 @@ class PE(Module):
                     self.raw_stats['pe_chn_pop'] += 1
                 ifmap = self.ifmap_chn.pop()
                 weight = self.filter_chn.peek()
-                self.raw_stats['pe_rf_rd'] += 1    # TODO
+                self.raw_stats['pe_rf_rd'] += 1
                 self.psum_out_chn.push(in_psum+ifmap*weight)
                 self.raw_stats['pe_mac'] += 1
                 self.raw_stats['pe_chn_push'] += 1
@@ -62,7 +62,7 @@ class PE(Module):
                 if self.curr_tile == self.num_tiles:
                     self.curr_tile = 0
                     self.filter_chn.pop()
-                    self.raw_stats['pe_rf_rd'] -= 1
+                    self.raw_stats['pe_rf_rd'] -= 1 # weight pop -> not an rf read for first use
                     self.raw_stats['pe_rf_wr'] += 1
                     self.iteration += 1
                 #if self.iteration == self.num_iteration:

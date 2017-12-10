@@ -99,8 +99,8 @@ class BiasNoC(Module):
         self.chn_per_word = chn_per_word
         self.name = 'bias_noc'
         
-        #self.stat_type = 'show'
-        #self.raw_stats = {'noc_multicast' : 0}
+        self.stat_type = 'show'
+        self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chn = rd_chn
         self.wr_chns = wr_chns
@@ -127,7 +127,7 @@ class BiasNoC(Module):
 
             if vacancy:
                 data = self.rd_chn.pop()
-                #self.raw_stats['noc_multicast'] += len(data)
+                self.raw_stats['noc_multicast'] += len(data)
                 for x in range(xmin, xmax):
                     for y in range(self.arr_y):
                         self.wr_chns[y][x].push(data[x-xmin])
@@ -142,8 +142,8 @@ class PostTrWrNoC(Module):
         self.chn_per_word = chn_per_word
         self.name = 'post_tr_wr_noc'
         
-        #self.stat_type = 'show'
-        #self.raw_stats = {'noc_multicast' : 0}
+        self.stat_type = 'show'
+        self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chns = rd_chns
         self.wr_chns = wr_chns
@@ -175,6 +175,7 @@ class PostTrWrNoC(Module):
                 
                 for x in range(self.arr_x):
                     data = self.rd_chns[x].pop()
+                    self.raw_stats['noc_multicast'] += 1
                     self.wr_chns[self.curr_tile][x].push(data)
                     #print("post tr wr noc -- pop from rd_chn %d, push to wr_chn %d %d", x, self.curr_tile, x)
                     #self.raw_stats['noc_multicast'] += len(data)
@@ -191,8 +192,8 @@ class PostTrRdNoC(Module):
         self.chn_per_word = chn_per_word
         self.name = 'post_tr_rd_noc'
         
-        #self.stat_type = 'show'
-        #self.raw_stats = {'noc_multicast' : 0}
+        self.stat_type = 'show'
+        self.raw_stats = {'noc_multicast' : 0}
 
         self.rd_chns = rd_chns
         self.output_chn = output_chn
@@ -221,9 +222,9 @@ class PostTrRdNoC(Module):
             
             if target_chn.vacancy():
                 data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(xmin, xmax) ]
-                print("post tr rd noc -- pushing from rd_chn ", self.curr_tile, data)
+                #print("post tr rd noc -- pushing from rd_chn ", self.curr_tile, data)
                 target_chn.push(data)
-                #self.raw_stats['noc_multicast'] += len(data)
+                self.raw_stats['noc_multicast'] += len(data)
 
                 self.curr_set += 1
                 if self.curr_set == self.ofmap_sets:
@@ -268,7 +269,7 @@ class PSumRdNoC(Module):
             #self.raw_stats['noc_multicast'] += len(data)
             for x in range(self.arr_x):
                 self.wr_chns[x].push(0)
-                print ("psum_to_pe: x, data: ", x, 0)
+                #print ("psum_to_pe: x, data: ", x, 0)
 
 class PSumWrNoC(Module):
     def instantiate(self, rd_chns, output_chn, chn_per_word):
@@ -310,10 +311,10 @@ class PSumWrNoC(Module):
 
         if valid:
             target_chn = self.output_chn
-            print ("noc has valid psum data")
+            #print ("noc has valid psum data")
             
             if target_chn.vacancy():
-                print ("psum_to_glb: iteration, psum_idx, xmin, xmax: ", self.iteration, self.tile_idx, xmin, xmax)
+                #print ("psum_to_glb: iteration, psum_idx, xmin, xmax: ", self.iteration, self.tile_idx, xmin, xmax)
                 data = [ self.rd_chns[x].pop() for x in range(xmin, xmax) ]
                 target_chn.push(data)
                 self.raw_stats['noc_multicast'] += len(data)

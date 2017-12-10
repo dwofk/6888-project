@@ -63,7 +63,7 @@ class InputSerializer(Module):
                 kmax = kmin + self.chn_per_word
                 data = np.array([self.bias[k] for k in range(kmin,kmax)])
                 self.bias_idx += 1
-                print ("input ser kmin,kmax,bias: ",kmin,kmax,data)
+                #print ("input ser kmin,kmax,bias: ",kmin,kmax,data)
             elif (not self.fmap_wr_done) and self.send_ifmap: # send ifmap
                 # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]
@@ -72,7 +72,7 @@ class InputSerializer(Module):
                 cmax = cmin + self.chn_per_word # 4
                 data = np.array([ self.ifmap[x, y, c] for c in range(cmin, cmax) ])
                 self.fmap_idx += 1
-                print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
+                #print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
                 self.send_ifmap = False
             else: # send weight
                 # send 4 elements of weights (twice in succession)
@@ -84,7 +84,7 @@ class InputSerializer(Module):
                 self.curr_filter += 1
                 if (not self.fmap_wr_done):
                     self.send_ifmap = True
-                print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
+                #print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
             self.arch_input_chn.push(data)
             if self.fmap_idx == fmap_per_iteration:
                 self.fmap_wr_done = True
@@ -154,20 +154,17 @@ class InputDeserializer(Module):
         if self.arch_input_chn.valid():
             if target_chn.vacancy():
                 data = [e for e in self.arch_input_chn.pop()]
-                print ("des to ", target_str, data)
+                #print ("des to ", target_str, data)
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
                 if target_str == 'ifmap':
-                    self.raw_stats['dram_rd'] += len(data)
                     self.send_ifmap = False
                     self.fmap_idx += 1
                 if target_str == 'weights':
-                    self.raw_stats['dram_rd'] += len(data)
                     self.curr_filter += 1
                     if (not self.fmap_wr_done):
                         self.send_ifmap = True
                 if target_str == 'bias':
-                    self.raw_stats['dram_rd'] += len(data)
                     self.bias_idx+=1
                 if self.bias_idx == 2:
                     self.bias_wr_done = True
