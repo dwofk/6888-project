@@ -137,6 +137,7 @@ class Stimulus(Module):
         print ("biases: ", bias)
         print ("reference orig conv: ", reference)
         print ("reference winograd: ", reference_winograd)
+        print ("diff b/w orig conv and winograd conv: ", reference-reference_winograd)
 
         self.serializer.configure(ifmap, weights, bias, image_size, filter_size)
         #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)

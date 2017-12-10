@@ -34,7 +34,7 @@ class Stimulus(Module):
         # Test data
         #ifmap = np.zeros((image_size[0], image_size[1],
         #    in_chn)).astype(np.int64)
-        np.random.seed(0)
+        #np.random.seed(0)
         ifmap = np.random.normal(0, 10, (image_size[0], image_size[1],
             in_chn)).astype(np.int64)
         print("ifmap: ", ifmap)
