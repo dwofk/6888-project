@@ -10,7 +10,7 @@ class InputSerializer(Module):
         self.arr_x = arr_x
         self.arr_y = arr_y
         self.chn_per_word = chn_per_word
-        
+
         self.arch_input_chn = arch_input_chn
 
         self.ifmap = None
@@ -44,7 +44,7 @@ class InputSerializer(Module):
         self.weight_wr_done = False
         self.pass_done.wr(False)
         self.send_ifmap = True # used to interleave sending weights and ifmaps to chip
-        
+
         self.bias_sets = 2
 
     def tick(self):
@@ -63,7 +63,7 @@ class InputSerializer(Module):
                 kmax = kmin + self.chn_per_word
                 data = np.array([self.bias[k] for k in range(kmin,kmax)])
                 self.bias_idx += 1
-                print ("input ser kmin,kmax,bias: ",kmin,kmax,data)                
+                print ("input ser kmin,kmax,bias: ",kmin,kmax,data)
             elif (not self.fmap_wr_done) and self.send_ifmap: # send ifmap
                 # send 4 elements of ifmap
                 x = self.fmap_idx % self.image_size[0]
@@ -85,7 +85,7 @@ class InputSerializer(Module):
                 if (not self.fmap_wr_done):
                     self.send_ifmap = True
                 print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
-            self.arch_input_chn.push(data)  
+            self.arch_input_chn.push(data)
             if self.fmap_idx == fmap_per_iteration:
                 self.fmap_wr_done = True
                 self.fmap_idx = 0
@@ -107,7 +107,7 @@ class InputDeserializer(Module):
         self.arr_y = arr_y
 
         self.stat_type = 'aggregate'
-        self.raw_stats = {'dram_rd' : 0, 'dram_to_glb_acc' : 0, 'dram_to_pe_acc' : 0, 'dram_to_post_tr' : 0}
+        self.raw_stats = {'dram_rd' : 0, 'dram_wr' : 0}
 
         self.arch_input_chn = arch_input_chn
         self.ifmap_chn = ifmap_chn
@@ -140,7 +140,7 @@ class InputDeserializer(Module):
         out_sets = self.arr_x//self.chn_per_word # 2
         fmap_per_iteration = self.image_size[0]*self.image_size[1]
         weights_per_filter = self.filter_size[0]*self.filter_size[1]
- 
+
         if not self.bias_wr_done:
             target_chn = self.bias_chn
             target_str = "bias"
@@ -158,22 +158,22 @@ class InputDeserializer(Module):
                 target_chn.push(data)
                 self.raw_stats['dram_rd'] += len(data)
                 if target_str == 'ifmap':
-                    self.raw_stats['dram_to_glb_acc'] += len(data)
+                    self.raw_stats['dram_rd'] += len(data)
                     self.send_ifmap = False
                     self.fmap_idx += 1
                 if target_str == 'weights':
-                    self.raw_stats['dram_to_pe_acc'] += len(data)
+                    self.raw_stats['dram_rd'] += len(data)
                     self.curr_filter += 1
                     if (not self.fmap_wr_done):
                         self.send_ifmap = True
                 if target_str == 'bias':
-                    self.raw_stats['dram_to_post_tr'] += len(data)
+                    self.raw_stats['dram_rd'] += len(data)
                     self.bias_idx+=1
                 if self.bias_idx == 2:
                     self.bias_wr_done = True
                 if self.fmap_idx == fmap_per_iteration:
                     self.fmap_wr_done = True
-                    self.fmap_idx = 0       
+                    self.fmap_idx = 0
                 if self.curr_filter == self.arr_x:
                     self.weight_idx += 1
                     self.curr_filter = 0
@@ -184,7 +184,7 @@ class OutputSerializer(Module):
     def instantiate(self, arch_output_chn, psum_chn):
         self.arch_output_chn = arch_output_chn
         self.psum_chn = psum_chn
-        
+
         self.stat_type = 'aggregate'
         self.raw_stats = {'dram_wr' : 0}
 
@@ -207,7 +207,7 @@ class OutputDeserializer(Module):
         self.chn_per_word = chn_per_word
 
         self.arch_output_chn = arch_output_chn
-        
+
         #self.finish_signal_chn = finish_signal_chn
 
         self.ofmap = None
@@ -218,7 +218,7 @@ class OutputDeserializer(Module):
 
         self.curr_set = 0
         self.fmap_idx = 0
-        
+
         self.pass_done = Reg(False)
 
     def configure(self, ofmap, reference, image_size):#, bias):
@@ -250,7 +250,7 @@ class OutputDeserializer(Module):
 #                self.curr_tile = 0
 #                self.ofmap_transformed[:,:,self.curr_chn] += self.bias[self.curr_chn] # add bias
 #                self.curr_chn += 1
-#            if self.curr_chn == 8:                
+#            if self.curr_chn == 8:
 #                print ("reference shape: ", self.reference.shape)
 #                print ("ofmap shape: ", self.ofmap.shape)
 
@@ -272,7 +272,7 @@ class OutputDeserializer(Module):
                 print ("difference: ")
                 print(self.ofmap-self.reference)
                 raise Finish("Validation Failed")
-        
+
         else:
             print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
             out_sets = self.arr_x//self.chn_per_word # 2
@@ -280,7 +280,7 @@ class OutputDeserializer(Module):
 
             if self.arch_output_chn.valid():
                 data = [e for e in self.arch_output_chn.pop()]
-                
+
                 x_idx = (self.curr_tile // 2)*2
                 y_idx = (self.curr_tile % 2)*2
                 x = (self.fmap_idx % 2) + x_idx
