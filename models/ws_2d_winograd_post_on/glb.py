@@ -54,7 +54,7 @@ class IFMapGLB(Module):
                 # print "ifmap_glb wr"
                 # Write ifmap to glb
                 addr = self.fmap_sets*self.curr_tile + self.curr_set + self.fmap_idx*self.num_tiles
-                print ("ifmap_to_glb: ", self.curr_tile, self.fmap_idx, addr)
+                #print ("ifmap_to_glb: ", self.curr_tile, self.fmap_idx, addr)
                 self.curr_set += 1
                 self.sram.request(WR, addr, data)
                 if self.curr_set == self.fmap_sets:
@@ -71,13 +71,13 @@ class IFMapGLB(Module):
             if self.rd_chn.vacancy(1) and self.addr < self.glb_depth:
                 # Read from GLB and deal with SRAM latency
                 self.sram.request(RD, self.addr)
-                print ("read_ifmap_glb: ", self.addr)
+                #print ("read_ifmap_glb: ", self.addr)
                 self.addr += 1
                 self.last_read.push(False)
 
                 # Process the last read sent to the GLB SRAM
             if self.last_read.valid():
-                print ("ifmap_glb_to_noc")
+                #print ("ifmap_glb_to_noc")
                 is_zero = self.last_read.pop()
                 data = [e for e in self.sram.response()]
                 # print "ifmap rd glb", data

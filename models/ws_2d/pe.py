@@ -53,7 +53,7 @@ class PE(Module):
                 self.raw_stats['pe_mac'] += 1
                 #print("PE(%d, %d) fired @ (%d, %d)" % (self.loc_x, self.loc_y, \
                 #                                       self.iteration, self.fmap_idx))
-                print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))
+                #print("PE(%d, %d) calc... in_psum, ifmap, weight, out_psum: %d %d %d %d" % (self.loc_x, self.loc_y, in_psum, ifmap, weight, in_psum+ifmap*weight))
                 self.fmap_idx += 1
                 if self.fmap_idx == self.fmap_per_iteration:
                     self.fmap_idx = 0

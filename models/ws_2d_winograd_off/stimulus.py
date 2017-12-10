@@ -5,7 +5,7 @@ from nnsim.module import Module
 from .serdes import InputSerializer, OutputDeserializer
 
 def conv(x, W, b):
-    print (x.shape, W.shape, b.shape)
+    #print (x.shape, W.shape, b.shape)
     y = np.zeros([x.shape[0], x.shape[1], W.shape[3]]).astype(np.int64)
     for out_channel in range(W.shape[3]):
         for in_channel in range(W.shape[2]):
@@ -16,7 +16,7 @@ def conv(x, W, b):
     return y
 
 def winograd_tile(x, W, b):
-    print(x.shape, W.shape, b.shape)
+    #print(x.shape, W.shape, b.shape)
     x = x.astype(np.float64)
     W = W.astype(np.float64)
     b = b.astype(np.float64)
@@ -62,7 +62,7 @@ def winograd_tile(x, W, b):
     for k in range(K):
         for c in range(C): # sum over input channels C
             M[:,:,k] += np.multiply(U[:,:,c,k],V[:,:,c])
-    print ("M type? :", M)
+    #print ("M type? :", M)
     M = M//(128) #M = M//(128*128) # right shift by 14 bits to "undo" bit shifts in preprocessing
     
                 
@@ -81,9 +81,9 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
     x = np.pad(x_nopadding,1,'constant') # x padded: 6x6x4
     x = x[:,:,1:5] # remove accidental padding that added extra channels
     y = np.zeros([x.shape[0]-W.shape[0]+1, x.shape[1]-W.shape[1]+1, W.shape[3]]).astype(np.int64)# y: 4x4x8
-    print ("x original: ", x_nopadding)
-    print ("x padded:", x)
-    print ("x padded shape:", x.shape)
+    #print ("x original: ", x_nopadding)
+    #print ("x padded:", x)
+    #print ("x padded shape:", x.shape)
     for i in range(2):
         for j in range(2):
             [y[2*i:2*i+2,2*j:2*j+2,:],u,v,m] = winograd_tile(x[2*i:2*i+4,2*j:2*j+4,:],W,b)
@@ -92,8 +92,8 @@ def conv_winograd(x_nopadding,W,b): # x: 4x4x4, W: 3x3x4x8, b: 8x1:
             U = u
             V[:,:,:,2*i+j] = v
             M[:,:,:,2*i+j] = m
-    print ("U stimulus: ", U)
-    print ("V stimulus: ", V)
+    #print ("U stimulus: ", U)
+    #print ("V stimulus: ", V)
     return y,U,V,M
 
 
@@ -116,7 +116,7 @@ class Stimulus(Module):
 
     def configure(self, image_size, filter_size, in_chn, out_chn):
         # Test data
-        np.random.seed(0)
+        #np.random.seed(0)
         #ifmap = np.zeros((image_size[0], image_size[1],
          #   in_chn)).astype(np.int64)
         ifmap = np.random.normal(0, 10, (image_size[0], image_size[1],
@@ -130,12 +130,14 @@ class Stimulus(Module):
         # Reference Output
         reference = conv(ifmap, weights, bias)
         reference_winograd, weights_winograd, ifmaps_winograd, ofmap_winograd = conv_winograd(ifmap, weights, bias)
-        print ("ofmap winograd ref: ", ofmap_winograd)
-        
+        #print ("ofmap winograd ref: ", ofmap_winograd)
+        #print ("ifmaps winograd: ", ifmaps_winograd)
+        #print ("weights winograd: ", weights_winograd)
+        print ("ifmaps: ", ifmap)
+        print ("weights: ",weights)
         print ("reference: ", reference)
         print ("reference winograd: ", reference_winograd)
-        print ("ifmaps winograd: ", ifmaps_winograd)
-        print ("weights winograd: ", weights_winograd)
+
 
         self.serializer.configure(ifmap, weights, image_size, filter_size)
         #self.serializer.configure(ifmaps_winograd, weights_winograd, image_size, filter_size)

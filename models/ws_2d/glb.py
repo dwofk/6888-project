@@ -67,7 +67,7 @@ class IFMapGLB(Module):
             if self.rd_chn.vacancy(1) and self.iteration < num_iteration:
                 
                 self.read_ctr += 1
-                print("ifmap glb read ctr ", self.read_ctr)
+                #print("ifmap glb read ctr ", self.read_ctr)
                 
                 fmap_x = self.fmap_idx % self.image_size[0]
                 fmap_y = self.fmap_idx  // self.image_size[0]
@@ -80,7 +80,7 @@ class IFMapGLB(Module):
                     fmap_idx = (ifmap_y*self.image_size[0]) + ifmap_x
                     addr = self.fmap_sets*fmap_idx + self.curr_set
                     # print("addr fmap idx, addr: ", fmap_idx, addr)
-                    print("ifmap req glb: iter, fmap idx, addr ", self.iteration, self.fmap_idx, addr)
+                    #print("ifmap req glb: iter, fmap idx, addr ", self.iteration, self.fmap_idx, addr)
                     self.sram.request(RD, addr)
                     self.last_read.push(False)
                 self.curr_set += 1
@@ -97,7 +97,7 @@ class IFMapGLB(Module):
                 is_zero = self.last_read.pop()
                 data = [0]*self.chn_per_word if is_zero else \
                         [e for e in self.sram.response()]
-                print("ifmap rd glb", data, self.iteration)
+                #print("ifmap rd glb", data, self.iteration)
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
                 self.raw_stats['glb_to_pe_acc'] += len(data)
@@ -170,7 +170,7 @@ class PSumGLB(Module):
             # print self.rd_chn.vacancy(1), self.rd_chn.rd_ptr.rd(), self.rd_chn.wr_ptr.rd()
             if self.rd_chn.vacancy(1) and self.iteration < num_iteration:
                 addr = self.fmap_sets*self.fmap_rd_idx + self.rd_set
-                print("psum req glb", self.iteration, self.fmap_rd_idx, self.rd_set)
+                #print("psum req glb", self.iteration, self.fmap_rd_idx, self.rd_set)
                 self.sram.request(RD, addr, port=0)
                 self.last_read.push(False)
                 self.rd_set += 1
@@ -190,15 +190,15 @@ class PSumGLB(Module):
                 self.rd_chn.push(data)
                 self.raw_stats['rd'] += len(data)
                 self.raw_stats['glb_to_pe_acc'] += len(data)
-                print("psum rd glb: data", data)
+                #print("psum rd glb: data", data)
 
             if self.noc_wr_chn.valid():
                 data = self.noc_wr_chn.pop()
-                print("psum_to_glb: ", self.fmap_wr_idx, self.wr_set, data)
+                #print("psum_to_glb: ", self.fmap_wr_idx, self.wr_set, data)
                 
                 self.raw_stats['wr'] += len(data)
                 addr = self.fmap_sets*self.fmap_wr_idx + self.wr_set
-                print("noc psum wr glb", self.fmap_wr_idx, self.wr_set, data)
+                #print("noc psum wr glb", self.fmap_wr_idx, self.wr_set, data)
                 self.wr_set += 1
                 self.sram.request(WR, addr, data, port=1)
                 if self.wr_set == self.fmap_sets:
@@ -206,7 +206,7 @@ class PSumGLB(Module):
                     self.fmap_wr_idx += 1
                 if self.fmap_wr_idx == self.fmap_per_iteration:
                     # Done initializing ifmaps and psums
-                    self.sram.dump()
+                    #self.sram.dump()
                     self.fmap_wr_idx = 0
 
 class WeightsGLB(Module):
@@ -223,7 +223,7 @@ class WeightsGLB(Module):
             data = self.wr_chn.pop()
             self.raw_stats['wr'] += len(data)
             self.rd_chn.push(data)
-            print("weight rd glb", data)
+            #print("weight rd glb", data)
             self.raw_stats['rd'] += len(data)
 
 

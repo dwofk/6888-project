@@ -105,7 +105,7 @@ class PSumRdNoC(Module):
         self.rd_chn = rd_chn
         self.wr_chns = wr_chns
         
-        print("wr chn len: ", wr_chns)
+        #print("wr chn len: ", wr_chns)
 
         self.psum_sets = 0
 

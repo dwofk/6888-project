@@ -33,7 +33,8 @@ class WSArchTB(Module):
 
         ifmap_glb_depth = self.image_size[0]*self.image_size[1]*self.num_tiles*self.in_chn//self.chn_per_word
         # psum_glb_depth = self.image_size[0]*self.image_size[1]*self.out_chn//self.chn_per_word
-
+        print("ifmap glb depth:", ifmap_glb_depth)
+        print("weight glb depth: 0")
         self.stimulus = Stimulus(self.arr_x, self.arr_y, self.chn_per_word,
             self.input_chn, self.output_chn, self.finish_signal_chn)
         self.dut = WSArch(self.arr_x, self.arr_y, self.input_chn,

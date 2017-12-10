@@ -271,7 +271,7 @@ class OutputDeserializer(Module):
                 raise Finish("Validation Failed")
 
         else:
-            print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
+            #print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
             out_sets = self.arr_x//self.chn_per_word # 2
             fmap_per_iteration = 4 # ofmap size, parametrize .. TODO
 

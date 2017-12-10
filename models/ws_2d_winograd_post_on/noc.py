@@ -70,7 +70,7 @@ class IFMapNoC(Module):
         self.curr_filter = 0
 
     def tick(self):
-        print ("ifmap noc valid signal: ",self.rd_chn.valid())
+        #print ("ifmap noc valid signal: ",self.rd_chn.valid())
         # Feed inputs to the PE array from the GLB
         if self.rd_chn.valid():
             # Dispatch ifmap read if space is available and not at edge
@@ -82,7 +82,7 @@ class IFMapNoC(Module):
                     vacancy = vacancy and self.wr_chns[y][x].vacancy()
 
             if vacancy:
-                print ("ifmap noc sends data to PEs")
+                #print ("ifmap noc sends data to PEs")
                 data = self.rd_chn.pop()
                 self.raw_stats['noc_multicast'] += len(data)
                 # print "ifmap_to_pe", ymin, ymax, data
@@ -131,7 +131,7 @@ class BiasNoC(Module):
                 for x in range(xmin, xmax):
                     for y in range(self.arr_y):
                         self.wr_chns[y][x].push(data[x-xmin])
-                        print ("bias_to_post_tr: x, data: ", x, 0)
+                        #print ("bias_to_post_tr: x, data: ", x, 0)
                         
                 self.curr_set += 1
                 if self.curr_set == self.bias_sets:

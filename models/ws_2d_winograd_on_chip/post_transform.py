@@ -64,7 +64,7 @@ class PostTransform(Module):
         elif self.ofmap_in_chn.valid() and self.ofmap_out_chn.vacancy():
             m = (self.ofmap_in_chn.pop())//(128) # right shift by 7 bits
             self.raw_stats['post_tr_alu_comp'] += 1
-            print("post tr -- iteration ", self.iteration)
+            #print("post tr -- iteration ", self.iteration)
             if (self.iteration == 0):    # get M_00
                 self.y00 += m
                 self.raw_stats['post_tr_alu_comp'] += 1
@@ -148,7 +148,7 @@ class PostTransform(Module):
                 self.raw_stats['post_tr_rf_rd'] += 4
                 self.raw_stats['post_tr_rf_wr'] += 4
                 self.iteration += 1
-                print("post tr pushing y00: ", self.y00, self.bias)
+                #print("post tr pushing y00: ", self.y00, self.bias)
                 self.ofmap_out_chn.push(self.y00) # y00 done
                 self.raw_stats['post_tr_rf_wr'] -= 1 # send y00 immediately w/o writing to rf
             elif (self.iteration == 11): # get M_23
@@ -158,7 +158,7 @@ class PostTransform(Module):
                 self.raw_stats['post_tr_rf_rd'] += 2
                 self.raw_stats['post_tr_rf_wr'] += 2
                 self.iteration += 1
-                print("post tr pushing y01: ", self.y01, self.bias)
+                #print("post tr pushing y01: ", self.y01, self.bias)
                 self.ofmap_out_chn.push(self.y01) # y01 done
                 self.raw_stats['post_tr_rf_wr'] -= 1 # send y01 immediately w/o writing to rf
             elif (self.iteration == 12): # get M_30
@@ -181,7 +181,7 @@ class PostTransform(Module):
                 self.raw_stats['post_tr_rf_rd'] += 2
                 self.raw_stats['post_tr_rf_wr'] += 2
                 self.iteration += 1
-                print("post tr pushing y10: ", self.y10, self.bias)
+                #print("post tr pushing y10: ", self.y10, self.bias)
                 self.ofmap_out_chn.push(self.y10) # y10 done
                 self.raw_stats['post_tr_rf_wr'] -= 1 # send y10 immediately w/o writing to rf
             elif (self.iteration == 15): # get M_33
@@ -190,7 +190,7 @@ class PostTransform(Module):
                 self.raw_stats['post_tr_rf_rd'] += 1
                 self.raw_stats['post_tr_rf_wr'] += 1
                 self.iteration += 1
-                print("post tr pushing y11: ", self.y11, self.bias)
+                #print("post tr pushing y11: ", self.y11, self.bias)
                 self.ofmap_out_chn.push(self.y11) # y11 done
                 self.raw_stats['post_tr_rf_wr'] -= 1 # send y11 immediately w/o writing to rf
             #self.iteration += 1

@@ -83,7 +83,7 @@ class IFMapNoC(Module):
 
             if vacancy:
                 data = self.rd_chn.pop()
-                print ("ifmap noc sends data to PEs: ",data)
+                #print ("ifmap noc sends data to PEs: ",data)
                 self.raw_stats['noc_multicast'] += len(data)
                 # print "ifmap_to_pe", ymin, ymax, data
                 for y in range(ymin, ymax):
@@ -131,7 +131,7 @@ class BiasNoC(Module):
                 for x in range(xmin, xmax):
                     for y in range(self.arr_y):
                         self.wr_chns[y][x].push(data[x-xmin])
-                        print ("bias_to_post_tr: x, data: ", x, 0)
+                        #print ("bias_to_post_tr: x, data: ", x, 0)
 
                 self.curr_set += 1
                 if self.curr_set == self.bias_sets:
@@ -211,7 +211,7 @@ class PreTrIFMapRdNoC(Module):
             if target_chn.vacancy():
                 data = [ self.rd_chns[self.curr_tile][x].pop() for x in range(self.arr_x) ]
                 #print("pre tr ifmap rd noc -- pushing from rd_chn ", self.curr_tile, data)
-                print ("pre tr ifmap rd noc sends data: ", self.curr_tile, data)
+                #print ("pre tr ifmap rd noc sends data: ", self.curr_tile, data)
                 target_chn.push(data)
                 self.raw_stats['noc_multicast'] += len(data)
 

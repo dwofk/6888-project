@@ -84,8 +84,8 @@ class InputSerializer(Module):
         V = 128*V;
         self.weights = U.astype(np.int64) # transformed weights
         self.ifmap = V.astype(np.int64) # transformed ifmap
-        print ("U ser: ", self.weights)
-        print ("V ser: ", self.ifmap)
+        #print ("U ser: ", self.weights)
+        #print ("V ser: ", self.ifmap)
 
     def tick(self):
         if self.pass_done.rd():
@@ -107,7 +107,7 @@ class InputSerializer(Module):
                 cmax = cmin + self.chn_per_word # 4
                 data = np.array([ self.ifmap[x, y, c, self.fmap_tile] for c in range(cmin, cmax) ])
                 self.fmap_tile += 1
-                print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
+                #print ("input ser x,y,cmin,cmax,ifmaps: ",x,y,cmin,cmax,data)
             else: # send weight
                 # send 4 elements of weights (twice in succession)
                 x = self.weight_idx % self.filter_size[0]
@@ -116,7 +116,7 @@ class InputSerializer(Module):
                 cmax = cmin + self.chn_per_word
                 data = np.array([self.weights[x, y, c, self.curr_filter] for c in range(cmin, cmax) ])
                 self.curr_filter += 1
-                print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
+                #print ("input ser x,y,cmin,cmax,curr_filter,weights: ",x,y,cmin,cmax,self.curr_filter,data)
             self.arch_input_chn.push(data)    
             if self.fmap_tile == self.num_tiles:
                 self.fmap_tile = 0
@@ -285,7 +285,7 @@ class OutputDeserializer(Module):
                 raise Finish("Validation Failed")
         
         else:
-            print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
+            #print ("output deser curr_tile, fmap_idx: ", self.curr_tile, self.fmap_idx)
             out_sets = self.arr_x//self.chn_per_word # 2
             fmap_per_iteration = self.image_size[0]*self.image_size[1]
 
